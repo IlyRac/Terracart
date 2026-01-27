@@ -1,0 +1,17 @@
+{
+    "type": "minecraft:crafting_shaped",
+    "pattern": [
+        "BNB",
+        "NIN",
+        "BNB"
+    ],
+    "key": {
+        "B": "minecraft:black_wool",
+        "I": "minecraft:iron_ingot",
+        "N": "minecraft:iron_nugget"
+    },
+    "result": {
+        "id": "terracart:cart_wheel",
+        "count": 1
+    }
+}

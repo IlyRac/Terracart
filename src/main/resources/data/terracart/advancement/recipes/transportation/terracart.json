@@ -1,0 +1,43 @@
+{
+  "parent": "minecraft:recipes/root",
+  "criteria": {
+    "has_minecart": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": "minecraft:minecart"
+          }
+        ]
+      }
+    },
+    "has_cart_wheel": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": "terracart:cart_wheel"
+          }
+        ]
+      }
+    },
+    "has_the_recipe": {
+      "trigger": "minecraft:recipe_unlocked",
+      "conditions": {
+        "recipe": "terracart:terracart"
+      }
+    }
+  },
+  "requirements": [
+    [
+      "has_the_recipe",
+      "has_cart_wheel",
+      "has_minecart"
+    ]
+  ],
+  "rewards": {
+    "recipes": [
+      "terracart:terracart"
+    ]
+  }
+}

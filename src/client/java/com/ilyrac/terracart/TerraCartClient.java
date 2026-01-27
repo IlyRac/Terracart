@@ -1,0 +1,66 @@
+package com.ilyrac.terracart;
+
+import com.ilyrac.terracart.entity.ModEntities;
+import com.ilyrac.terracart.entity.TerraCartEntity;
+import com.ilyrac.terracart.model.TerraCartModel;
+import com.ilyrac.terracart.renderer.TerraCartRenderer;
+import com.ilyrac.terracart.sound.TerraCartSoundController;
+import net.fabricmc.api.ClientModInitializer;
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
+import net.fabricmc.fabric.api.client.rendering.v1.EntityModelLayerRegistry;
+import net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry;
+import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.Font;
+
+public class TerraCartClient implements ClientModInitializer {
+
+	@Override
+	public void onInitializeClient() {
+        //noinspection deprecation
+        EntityRendererRegistry.register(
+				ModEntities.TERRACART,
+				TerraCartRenderer::new
+		);
+
+		EntityModelLayerRegistry.registerModelLayer(
+				TerraCartModel.LAYER,
+				TerraCartModel::createBodyLayer
+		);
+
+		ClientTickEvents.END_CLIENT_TICK.register(client -> {
+			if (client.level == null) return;
+			client.level.entitiesForRendering().forEach(entity -> {
+				if (entity instanceof TerraCartEntity cart) {
+					TerraCartSoundController.tick(cart);
+				}
+			});
+		});
+
+        //noinspection deprecation
+        HudRenderCallback.EVENT.register((gui, tickDelta) -> {
+			Minecraft mc = Minecraft.getInstance();
+			if (mc.player == null) return;
+
+			// show while riding
+			if (mc.player.getVehicle() instanceof TerraCartEntity cart) {
+				float fuelPercent = cart.getFuelPercent();
+				float speed = cart.getSpeedBps();
+
+				Font font = mc.font;
+				int screenW = mc.getWindow().getGuiScaledWidth();
+				int screenH = mc.getWindow().getGuiScaledHeight();
+
+				String fuelText = "Fuel: " + Math.round(fuelPercent * 100.0f) + "%";
+				int x = Math.toIntExact(Math.round((screenW - font.width(fuelText)) / 1.25));
+				int y = screenH - 50;
+				gui.drawString(font, fuelText, x, y, 0xFFFFFFFF, false);
+
+				String speedText = String.format("Speed: %.1f m/s", speed);
+				int sx = Math.toIntExact(Math.round((screenW - font.width(speedText)) / 1.25));
+				int sy = screenH - 60;
+				gui.drawString(font, speedText, sx, sy, 0xFFFFFFFF, false);
+			}
+		});
+	}
+}

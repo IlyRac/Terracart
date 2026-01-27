@@ -1,0 +1,41 @@
+{
+	"schemaVersion": 1,
+	"id": "terracart",
+	"version": "${version}",
+	"name": "TerraCart",
+	"description": "Later",
+	"authors": [
+		"IlyRac"
+	],
+	"custom": {
+		"modmenu": {
+			"links": {
+				"Support-Me": "https://ko-fi.com/ilyrash"
+			}
+		}
+	},
+	"license": "ARR",
+	"icon": "assets/terracart/icon.png",
+	"environment": "*",
+	"entrypoints": {
+		"main": [
+			"com.ilyrac.terracart.TerraCart"
+		],
+		"client": [
+			"com.ilyrac.terracart.TerraCartClient"
+		]
+	},
+	"mixins": [
+		"terracart.mixins.json",
+		{
+			"config": "terracart.client.mixins.json",
+			"environment": "client"
+		}
+	],
+	"depends": {
+		"fabricloader": ">=0.18.4",
+		"minecraft": "~1.21.11",
+		"java": ">=21",
+		"fabric-api": "*"
+	}
+}

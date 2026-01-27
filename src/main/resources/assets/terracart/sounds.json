@@ -1,0 +1,6 @@
+{
+  "terracart_sound": {
+    "subtitle": "sound.terracart.sound",
+    "sounds": ["terracart:terracart_sound"]
+  }
+}

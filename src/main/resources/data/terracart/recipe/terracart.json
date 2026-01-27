@@ -1,0 +1,19 @@
+{
+    "type": "minecraft:crafting_shaped",
+    "pattern": [
+        "CIC",
+        "FMG",
+        "CIC"
+    ],
+    "key": {
+        "F": "minecraft:furnace",
+        "M": "minecraft:minecart",
+        "G": "minecraft:glass_pane",
+        "I": "minecraft:iron_block",
+        "C": "terracart:cart_wheel"
+    },
+    "result": {
+        "id": "terracart:terracart",
+        "count": 1
+    }
+}

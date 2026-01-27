@@ -1,0 +1,6 @@
+{
+  "model": {
+    "type": "minecraft:model",
+    "model": "terracart:item/cart_wheel"
+  }
+}
