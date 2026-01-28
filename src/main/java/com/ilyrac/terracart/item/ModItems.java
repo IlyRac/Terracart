@@ -24,14 +24,44 @@ public class ModItems {
         return item;
     }
 
+    // ----- COLORS -----
+    private static final String[] COLOR_NAMES = {
+            "white","orange","magenta","light_blue","yellow","lime","pink","gray",
+            "light_gray","cyan","purple","blue","brown","green","red","black"
+    };
+    public static final Item[] COLORED_TERRACARTS = new Item[16];
+
     public static void initialize() {
         ItemGroupEvents.modifyEntriesEvent(CreativeModeTabs.INGREDIENTS)
         .register((itemGroup) -> itemGroup.accept(CART_WHEEL));
 
         ItemGroupEvents.modifyEntriesEvent(CreativeModeTabs.TOOLS_AND_UTILITIES)
-        .register((itemGroup) -> itemGroup.accept(TERRACART));
+        .register((itemGroup) ->
+        {
+            itemGroup.accept(TERRACART);
+            for (Item it : COLORED_TERRACARTS) {
+                itemGroup.accept(it);
+            }
+        });
     }
 
-    public static final Item CART_WHEEL = register("cart_wheel", Item::new, new Item.Properties().stacksTo(16));
-    public static final Item TERRACART = register("terracart", TerracartItem::new, new Item.Properties().stacksTo(1));
+    public static final Item CART_WHEEL = register("cart_wheel",
+            Item::new,
+            new Item.Properties().stacksTo(16));
+
+    public static final Item TERRACART = register("terracart",
+            TerracartItem::new,
+            new Item.Properties().stacksTo(1));
+
+    static {
+        for (int i = 0; i < COLOR_NAMES.length; i++) {
+            final int colorId = i;
+            String registryName = COLOR_NAMES[i] + "_terracart";
+            COLORED_TERRACARTS[i] = register(
+                    registryName,
+                    props -> new ColoredTerracartItem(colorId, props),
+                    new Item.Properties().stacksTo(1)
+            );
+        }
+    }
 }

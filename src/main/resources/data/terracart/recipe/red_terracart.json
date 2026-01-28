@@ -1,0 +1,17 @@
+{
+    "type": "minecraft:crafting_shaped",
+    "group": "Colored Terracart",
+    "pattern": [
+        "DDD",
+        "DTD",
+        "DDD"
+    ],
+    "key": {
+        "D": "minecraft:red_dye",
+        "T": "terracart:terracart"
+    },
+    "result": {
+        "id": "terracart:red_terracart",
+        "count": 1
+    }
+}

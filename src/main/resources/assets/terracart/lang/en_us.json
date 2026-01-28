@@ -1,5 +1,21 @@
 {
   "item.terracart.cart_wheel": "Cart Wheel",
+  "sound.terracart.sound": "Terracart Sound",
   "item.terracart.terracart": "Terracart",
-  "sound.terracart.sound": "Terracart Sound"
+  "item.terracart.black_terracart": "Black Terracart",
+  "item.terracart.blue_terracart": "Blue Terracart",
+  "item.terracart.brown_terracart": "Brown Terracart",
+  "item.terracart.cyan_terracart": "Cyan Terracart",
+  "item.terracart.gray_terracart": "Gray Terracart",
+  "item.terracart.green_terracart": "Green Terracart",
+  "item.terracart.light_blue_terracart": "Light Blue Terracart",
+  "item.terracart.light_gray_terracart": "Light Gray Terracart",
+  "item.terracart.lime_terracart": "Lime Terracart",
+  "item.terracart.magenta_terracart": "Magenta Terracart",
+  "item.terracart.orange_terracart": "Orange Terracart",
+  "item.terracart.pink_terracart": "Pink Terracart",
+  "item.terracart.purple_terracart": "Purple Terracart",
+  "item.terracart.red_terracart": "Red Terracart",
+  "item.terracart.white_terracart": "White Terracart",
+  "item.terracart.yellow_terracart": "Yellow Terracart"
 }

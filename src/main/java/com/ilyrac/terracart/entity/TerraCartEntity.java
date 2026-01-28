@@ -46,16 +46,23 @@ public class TerraCartEntity extends VehicleEntity {
 
     @Override
     protected void addAdditionalSaveData(@NonNull ValueOutput output) {
+        output.putInt("CartColor", getCartColor());
         output.putInt("FuelTicks", fuelTicks);
     }
 
     @Override
     protected void readAdditionalSaveData(@NonNull ValueInput input) {
+        int color = input.getIntOr("CartColor", -1);
+        entityData.set(CART_COLOR, color);
+
         fuelTicks = input.getIntOr("FuelTicks", 0);
         entityData.set(FUEL_TICKS, fuelTicks);
     }
 
     /* -------------------- Synced Data -------------------- */
+
+    private static final EntityDataAccessor<Integer> CART_COLOR =
+            SynchedEntityData.defineId(TerraCartEntity.class, EntityDataSerializers.INT);
 
     private static final EntityDataAccessor<Integer> FUEL_TICKS =
             SynchedEntityData.defineId(TerraCartEntity.class, EntityDataSerializers.INT);
@@ -75,6 +82,7 @@ public class TerraCartEntity extends VehicleEntity {
     @Override
     protected void defineSynchedData(SynchedEntityData.@NonNull Builder builder) {
         super.defineSynchedData(builder);
+        builder.define(CART_COLOR, -1);
         builder.define(FUEL_TICKS, 1200);
         builder.define(WHEEL_ROTATION, 0.0f);
         builder.define(SOUND_ACTIVE, false);
@@ -83,6 +91,16 @@ public class TerraCartEntity extends VehicleEntity {
     }
 
     /* -------------------- State -------------------- */
+
+    // Colored Carts
+    public void setCartColor(int color) {
+        if (color < 0) this.entityData.set(CART_COLOR, -1);
+        else this.entityData.set(CART_COLOR, Math.min(15, color));
+    }
+
+    public int getCartColor() {
+        return this.entityData.get(CART_COLOR);
+    }
 
     // vehicle toughness
     private static final float DAMAGE_REDUCTION = 0.2f;
@@ -250,6 +268,12 @@ public class TerraCartEntity extends VehicleEntity {
     protected void removePassenger(@NonNull Entity passenger) {
         super.removePassenger(passenger);
         this.currentSpeed = 0.0;
+    }
+
+    @Override
+    public boolean canRide(@NonNull Entity entity) {
+        // TerraCart may NEVER ride anything
+        return false;
     }
 
     /* -------------------- Dimensions -------------------- */

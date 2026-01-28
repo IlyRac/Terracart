@@ -28,6 +28,18 @@ public class TerraCartRenderer extends EntityRenderer<TerraCartEntity, TerraCart
         );
     }
 
+    private static final String[] COLOR_NAMES = {
+            "white","orange","magenta","light_blue","yellow","lime","pink","gray",
+            "light_gray","cyan","purple","blue","brown","green","red","black"
+    };
+    private static final Identifier[] TEXTURES = new Identifier[16];
+    static {
+        for (int i = 0; i < COLOR_NAMES.length; i++) {
+            TEXTURES[i] = Identifier.fromNamespaceAndPath(
+                    TerraCart.MOD_ID, "textures/entity/"+ COLOR_NAMES[i] +"_terracart.png");
+        }
+    }
+
     public static final Identifier TEXTURE = Identifier.fromNamespaceAndPath(
             TerraCart.MOD_ID,
             "textures/entity/terracart.png"
@@ -46,7 +58,14 @@ public class TerraCartRenderer extends EntityRenderer<TerraCartEntity, TerraCart
     ) {
         super.extractRenderState(entity, state, partialTick);
         state.yaw = Mth.lerp(partialTick, entity.yRotO, entity.getYRot());
-        state.texture = TEXTURE;
+//        state.texture = TEXTURE;
+
+        int color = entity.getCartColor(); // -1 .. 15
+        if (color >= 0 && color < TEXTURES.length) {
+            state.texture = TEXTURES[color];
+        } else {
+            state.texture = TEXTURE; // fallback default uncolored texture
+        }
 
         float wheelPrev = entity.getPrevWheelRotation();
         float wheelCurr = entity.getWheelRotation();
