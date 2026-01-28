@@ -1,0 +1,21 @@
+{
+  "replace": false,
+  "values": [
+    "terracart:white_terracart",
+    "terracart:orange_terracart",
+    "terracart:magenta_terracart",
+    "terracart:light_blue_terracart",
+    "terracart:yellow_terracart",
+    "terracart:lime_terracart",
+    "terracart:pink_terracart",
+    "terracart:gray_terracart",
+    "terracart:light_gray_terracart",
+    "terracart:cyan_terracart",
+    "terracart:purple_terracart",
+    "terracart:blue_terracart",
+    "terracart:brown_terracart",
+    "terracart:green_terracart",
+    "terracart:red_terracart",
+    "terracart:black_terracart"
+  ]
+}
