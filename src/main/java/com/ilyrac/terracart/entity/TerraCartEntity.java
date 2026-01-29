@@ -1,6 +1,7 @@
 package com.ilyrac.terracart.entity;
 
 import com.ilyrac.terracart.item.ModItems;
+import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.syncher.EntityDataAccessor;
@@ -20,6 +21,7 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.gamerules.GameRules;
 import net.minecraft.world.level.storage.ValueInput;
 import net.minecraft.world.level.storage.ValueOutput;
@@ -239,6 +241,32 @@ public class TerraCartEntity extends VehicleEntity {
             }
 
             this.addFuel(MAX_FUEL);
+
+            if (this.level() instanceof ServerLevel serverLevel) {
+                float volume = 1.0f;
+                float pitch = 1.0f;
+                serverLevel.playSound(
+                        /* player */ null,
+                        this.getX(), this.getY(), this.getZ(),
+                        SoundEvents.FIRECHARGE_USE,
+                        SoundSource.BLOCKS,
+                        volume,
+                        pitch
+                );
+
+                serverLevel.sendParticles(
+                        ParticleTypes.CAMPFIRE_COSY_SMOKE,
+                        this.getX(),
+                        this.getY() + 0.6,
+                        this.getZ(),
+                        6,        // count
+                        0.25,      // spread X
+                        0.15,      // spread Y
+                        0.25,      // spread Z
+                        0.1       // speed
+                );
+            }
+
             if (!player.isCreative()) stack.shrink(1);
             player.displayClientMessage(Component.literal("TerraCart refueled."), true);
             return InteractionResult.SUCCESS;
@@ -275,6 +303,17 @@ public class TerraCartEntity extends VehicleEntity {
         // TerraCart may NEVER ride anything
         return false;
     }
+
+    @Override
+    protected void playStepSound(@NonNull BlockPos pos, @NonNull BlockState state) {
+        // suppress footstep sound + subtitle
+    }
+
+    @Override
+    protected void checkFallDamage(double y, boolean onGround, @NonNull BlockState state, @NonNull BlockPos pos) {
+        // avoid fall/landing sounds
+    }
+
 
     /* -------------------- Dimensions -------------------- */
 

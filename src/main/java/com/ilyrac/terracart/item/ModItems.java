@@ -9,6 +9,7 @@ import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.item.CreativeModeTabs;
 import net.minecraft.world.item.Item;
+import net.minecraft.world.item.Items;
 
 import java.util.function.Function;
 
@@ -32,17 +33,18 @@ public class ModItems {
     public static final Item[] COLORED_TERRACARTS = new Item[16];
 
     public static void initialize() {
-        ItemGroupEvents.modifyEntriesEvent(CreativeModeTabs.INGREDIENTS)
-        .register((itemGroup) -> itemGroup.accept(CART_WHEEL));
+        ItemGroupEvents.modifyEntriesEvent(CreativeModeTabs.TOOLS_AND_UTILITIES).register(
+        entries -> {
+            entries.addAfter(Items.TNT_MINECART, TERRACART);
 
-        ItemGroupEvents.modifyEntriesEvent(CreativeModeTabs.TOOLS_AND_UTILITIES)
-        .register((itemGroup) ->
-        {
-            itemGroup.accept(TERRACART);
             for (Item it : COLORED_TERRACARTS) {
-                itemGroup.accept(it);
+                entries.addAfter(TERRACART, it);
             }
         });
+
+        ItemGroupEvents.modifyEntriesEvent(CreativeModeTabs.INGREDIENTS).register(
+            entries -> entries.addAfter(Items.PHANTOM_MEMBRANE, CART_WHEEL)
+        );
     }
 
     public static final Item CART_WHEEL = register("cart_wheel",
