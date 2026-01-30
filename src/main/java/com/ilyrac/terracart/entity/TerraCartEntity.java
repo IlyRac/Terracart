@@ -105,7 +105,7 @@ public class TerraCartEntity extends VehicleEntity {
     }
 
     // vehicle toughness
-    private static final float DAMAGE_REDUCTION = 0.2f;
+    private static final float DAMAGE_REDUCTION = 0.25f;
 
     // animation and speed
     private double currentSpeed = 0.0;
@@ -168,6 +168,10 @@ public class TerraCartEntity extends VehicleEntity {
 
     @Override
     public @NotNull ItemStack getPickResult() {
+        int color = getCartColor();
+        if (color >= 0 && color < ModItems.COLORED_TERRACARTS.length) {
+            return new ItemStack(ModItems.COLORED_TERRACARTS[color]);
+        }
         return new ItemStack(ModItems.TERRACART);
     }
 

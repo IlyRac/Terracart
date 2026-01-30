@@ -40,7 +40,7 @@ public class TerracartItem extends Item {
     private static @NonNull TerraCartEntity getTerraCartEntity(UseOnContext context, ServerLevel serverLevel) {
         Vec3 clickPos = context.getClickLocation();
 
-        // CONSTRUCTION (1.21+ CORRECT WAY)
+        // CONSTRUCTION
         TerraCartEntity entity = new TerraCartEntity(
                 ModEntities.TERRACART,
                 serverLevel

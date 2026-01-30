@@ -42,6 +42,11 @@ public class TerraCartClient implements ClientModInitializer {
 			Minecraft mc = Minecraft.getInstance();
 			if (mc.player == null) return;
 
+			// Respect vanilla options:
+			// - hideGui is toggled by F1
+			// - renderDebug is toggled by F3 (optional; include if you want to hide HUD while debug is shown)
+			if (mc.options.hideGui) return;
+
 			// show while riding
 			if (mc.player.getVehicle() instanceof TerraCartEntity cart) {
 				float fuelPercent = cart.getFuelPercent();
