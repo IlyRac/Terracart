@@ -1,6 +1,6 @@
 package com.ilyrac.terracart.item;
 
-import com.ilyrac.terracart.TerraCart;
+import com.ilyrac.terracart.Terracart;
 import net.fabricmc.fabric.api.itemgroup.v1.ItemGroupEvents;
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -16,7 +16,7 @@ import java.util.function.Function;
 public class ModItems {
     public static <GenericItem extends Item> GenericItem register(String name, Function<Item.Properties, GenericItem> itemFactory, Item.Properties settings) {
 
-        ResourceKey<Item> itemKey = ResourceKey.create(Registries.ITEM, Identifier.fromNamespaceAndPath(TerraCart.MOD_ID, name));
+        ResourceKey<Item> itemKey = ResourceKey.create(Registries.ITEM, Identifier.fromNamespaceAndPath(Terracart.MOD_ID, name));
 
         GenericItem item = itemFactory.apply(settings.setId(itemKey));
 

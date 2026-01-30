@@ -32,11 +32,11 @@ import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 import java.util.List;
 
-public class TerraCartEntity extends VehicleEntity {
+public class TerracartEntity extends VehicleEntity {
 
     /* -------------------- Construction -------------------- */
 
-    public TerraCartEntity(EntityType<? extends TerraCartEntity> type, Level level) {
+    public TerracartEntity(EntityType<? extends TerracartEntity> type, Level level) {
         super(type, level);
 
         // initialize last position trackers so first tick delta is sane
@@ -64,22 +64,22 @@ public class TerraCartEntity extends VehicleEntity {
     /* -------------------- Synced Data -------------------- */
 
     private static final EntityDataAccessor<Integer> CART_COLOR =
-            SynchedEntityData.defineId(TerraCartEntity.class, EntityDataSerializers.INT);
+            SynchedEntityData.defineId(TerracartEntity.class, EntityDataSerializers.INT);
 
     private static final EntityDataAccessor<Integer> FUEL_TICKS =
-            SynchedEntityData.defineId(TerraCartEntity.class, EntityDataSerializers.INT);
+            SynchedEntityData.defineId(TerracartEntity.class, EntityDataSerializers.INT);
 
     private static final EntityDataAccessor<Float> WHEEL_ROTATION =
-            SynchedEntityData.defineId(TerraCartEntity.class, EntityDataSerializers.FLOAT);
+            SynchedEntityData.defineId(TerracartEntity.class, EntityDataSerializers.FLOAT);
 
     public static final EntityDataAccessor<Boolean> SOUND_ACTIVE =
-            SynchedEntityData.defineId(TerraCartEntity.class, EntityDataSerializers.BOOLEAN);
+            SynchedEntityData.defineId(TerracartEntity.class, EntityDataSerializers.BOOLEAN);
 
     public static final EntityDataAccessor<Float> SOUND_VOLUME =
-            SynchedEntityData.defineId(TerraCartEntity.class, EntityDataSerializers.FLOAT);
+            SynchedEntityData.defineId(TerracartEntity.class, EntityDataSerializers.FLOAT);
 
     public static final EntityDataAccessor<Float> SOUND_PITCH =
-            SynchedEntityData.defineId(TerraCartEntity.class, EntityDataSerializers.FLOAT);
+            SynchedEntityData.defineId(TerracartEntity.class, EntityDataSerializers.FLOAT);
 
     @Override
     protected void defineSynchedData(SynchedEntityData.@NonNull Builder builder) {

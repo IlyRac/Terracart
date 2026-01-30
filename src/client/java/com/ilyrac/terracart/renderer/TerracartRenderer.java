@@ -1,9 +1,9 @@
 package com.ilyrac.terracart.renderer;
 
-import com.ilyrac.terracart.TerraCart;
-import com.ilyrac.terracart.entity.TerraCartEntity;
-import com.ilyrac.terracart.model.TerraCartModel;
-import com.ilyrac.terracart.renderer.state.TerraCartRenderState;
+import com.ilyrac.terracart.Terracart;
+import com.ilyrac.terracart.entity.TerracartEntity;
+import com.ilyrac.terracart.model.TerracartModel;
+import com.ilyrac.terracart.renderer.state.TerracartRenderState;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.math.Axis;
 import net.minecraft.client.renderer.SubmitNodeCollector;
@@ -15,16 +15,16 @@ import net.minecraft.resources.Identifier;
 import net.minecraft.util.Mth;
 import org.jspecify.annotations.NonNull;
 
-public class TerraCartRenderer extends EntityRenderer<TerraCartEntity, TerraCartRenderState> {
+public class TerracartRenderer extends EntityRenderer<TerracartEntity, TerracartRenderState> {
 
-    private final TerraCartModel model;
+    private final TerracartModel model;
 
-    public TerraCartRenderer(EntityRendererProvider.Context context) {
+    public TerracartRenderer(EntityRendererProvider.Context context) {
         super(context);
         this.shadowRadius = 0.9F;
 
-        this.model = new TerraCartModel(
-                context.bakeLayer(TerraCartModel.LAYER)
+        this.model = new TerracartModel(
+                context.bakeLayer(TerracartModel.LAYER)
         );
     }
 
@@ -36,24 +36,24 @@ public class TerraCartRenderer extends EntityRenderer<TerraCartEntity, TerraCart
     static {
         for (int i = 0; i < COLOR_NAMES.length; i++) {
             TEXTURES[i] = Identifier.fromNamespaceAndPath(
-                    TerraCart.MOD_ID, "textures/entity/"+ COLOR_NAMES[i] +"_terracart.png");
+                    Terracart.MOD_ID, "textures/entity/"+ COLOR_NAMES[i] +"_terracart.png");
         }
     }
 
     public static final Identifier TEXTURE = Identifier.fromNamespaceAndPath(
-            TerraCart.MOD_ID,
+            Terracart.MOD_ID,
             "textures/entity/terracart.png"
     );
 
     @Override
-    public TerraCartRenderState createRenderState() {
-        return new TerraCartRenderState();
+    public TerracartRenderState createRenderState() {
+        return new TerracartRenderState();
     }
 
     @Override
     public void extractRenderState(
-            TerraCartEntity entity,
-            TerraCartRenderState state,
+            TerracartEntity entity,
+            TerracartRenderState state,
             float partialTick
     ) {
         super.extractRenderState(entity, state, partialTick);
@@ -74,7 +74,7 @@ public class TerraCartRenderer extends EntityRenderer<TerraCartEntity, TerraCart
 
     @Override
     public void submit(
-            TerraCartRenderState state,
+            TerracartRenderState state,
             PoseStack poseStack,
             @NonNull SubmitNodeCollector collector,
             @NonNull CameraRenderState camera

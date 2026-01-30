@@ -1,6 +1,6 @@
 package com.ilyrac.terracart.model;
 
-import com.ilyrac.terracart.renderer.state.TerraCartRenderState;
+import com.ilyrac.terracart.renderer.state.TerracartRenderState;
 import net.minecraft.client.model.EntityModel;
 import net.minecraft.client.model.geom.ModelLayerLocation;
 import net.minecraft.client.model.geom.ModelPart;
@@ -8,7 +8,7 @@ import net.minecraft.client.model.geom.PartPose;
 import net.minecraft.client.model.geom.builders.*;
 import net.minecraft.resources.Identifier;
 
-public class TerraCartModel extends EntityModel<TerraCartRenderState> {
+public class TerracartModel extends EntityModel<TerracartRenderState> {
 
     public static final ModelLayerLocation LAYER =
             new ModelLayerLocation(Identifier.fromNamespaceAndPath("terracart", "terracart"), "main");
@@ -17,7 +17,7 @@ public class TerraCartModel extends EntityModel<TerraCartRenderState> {
     private final ModelPart frontWheels;
     private final ModelPart backWheels;
 
-    public TerraCartModel(ModelPart root) {
+    public TerracartModel(ModelPart root) {
         super(root);
 
         this.root = root;
@@ -89,7 +89,7 @@ public class TerraCartModel extends EntityModel<TerraCartRenderState> {
 
     /* ===================== ANIMATION ===================== */
     @Override
-    public void setupAnim(TerraCartRenderState state) {
+    public void setupAnim(TerracartRenderState state) {
         this.root.resetPose();
 
         float rotation = state.wheelRotation;

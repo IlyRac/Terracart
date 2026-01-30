@@ -1,7 +1,7 @@
 package com.ilyrac.terracart.item;
 
 import com.ilyrac.terracart.entity.ModEntities;
-import com.ilyrac.terracart.entity.TerraCartEntity;
+import com.ilyrac.terracart.entity.TerracartEntity;
 import net.minecraft.util.Mth;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.item.Item;
@@ -30,7 +30,7 @@ public class ColoredTerracartItem extends Item {
         Vec3 clickPos = context.getClickLocation();
 
         // Create entity
-        TerraCartEntity entity = new TerraCartEntity(ModEntities.TERRACART, serverLevel);
+        TerracartEntity entity = new TerracartEntity(ModEntities.TERRACART, serverLevel);
         entity.setPos(clickPos.x, clickPos.y, clickPos.z);
 
         float yaw = 0.0F;

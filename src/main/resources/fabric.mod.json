@@ -19,10 +19,10 @@
 	"environment": "*",
 	"entrypoints": {
 		"main": [
-			"com.ilyrac.terracart.TerraCart"
+			"com.ilyrac.terracart.Terracart"
 		],
 		"client": [
-			"com.ilyrac.terracart.TerraCartClient"
+			"com.ilyrac.terracart.TerracartClient"
 		]
 	},
 	"mixins": [

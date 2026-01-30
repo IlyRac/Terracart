@@ -1,7 +1,7 @@
 package com.ilyrac.terracart.item;
 
 import com.ilyrac.terracart.entity.ModEntities;
-import com.ilyrac.terracart.entity.TerraCartEntity;
+import com.ilyrac.terracart.entity.TerracartEntity;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.Mth;
 import net.minecraft.world.InteractionResult;
@@ -28,7 +28,7 @@ public class TerracartItem extends Item {
 
         ServerLevel serverLevel = (ServerLevel) level;
 
-        TerraCartEntity entity = getTerraCartEntity(context, serverLevel);
+        TerracartEntity entity = getTerraCartEntity(context, serverLevel);
 
         serverLevel.addFreshEntity(entity);
 
@@ -37,11 +37,11 @@ public class TerracartItem extends Item {
         return InteractionResult.SUCCESS;
     }
 
-    private static @NonNull TerraCartEntity getTerraCartEntity(UseOnContext context, ServerLevel serverLevel) {
+    private static @NonNull TerracartEntity getTerraCartEntity(UseOnContext context, ServerLevel serverLevel) {
         Vec3 clickPos = context.getClickLocation();
 
         // CONSTRUCTION
-        TerraCartEntity entity = new TerraCartEntity(
+        TerracartEntity entity = new TerracartEntity(
                 ModEntities.TERRACART,
                 serverLevel
         );

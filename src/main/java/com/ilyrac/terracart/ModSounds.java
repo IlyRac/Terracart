@@ -10,7 +10,7 @@ public class ModSounds {
     public static final SoundEvent TERRACART_SOUND = registerSound();
 
     private static SoundEvent registerSound() {
-        Identifier identifier = Identifier.fromNamespaceAndPath(TerraCart.MOD_ID, "terracart_sound");
+        Identifier identifier = Identifier.fromNamespaceAndPath(Terracart.MOD_ID, "terracart_sound");
         return Registry.register(BuiltInRegistries.SOUND_EVENT, identifier, SoundEvent.createVariableRangeEvent(identifier));
     }
 

@@ -1,14 +1,14 @@
 package com.ilyrac.terracart.sound;
 
 import com.ilyrac.terracart.ModSounds;
-import com.ilyrac.terracart.entity.TerraCartEntity;
+import com.ilyrac.terracart.entity.TerracartEntity;
 import net.minecraft.client.resources.sounds.AbstractTickableSoundInstance;
 import net.minecraft.sounds.SoundSource;
 
-public class TerraCartSoundInstance extends AbstractTickableSoundInstance {
-    private final TerraCartEntity cart;
+public class TerracartSoundInstance extends AbstractTickableSoundInstance {
+    private final TerracartEntity cart;
 
-    public TerraCartSoundInstance(TerraCartEntity cart) {
+    public TerracartSoundInstance(TerracartEntity cart) {
         super(ModSounds.TERRACART_SOUND, SoundSource.NEUTRAL, cart.level().getRandom());
         this.cart = cart;
         this.looping = true;
@@ -32,8 +32,8 @@ public class TerraCartSoundInstance extends AbstractTickableSoundInstance {
         }
 
         // read server-synced values
-        float serverVol = cart.getEntityData().get(com.ilyrac.terracart.entity.TerraCartEntity.SOUND_VOLUME);
-        float serverPitch = cart.getEntityData().get(com.ilyrac.terracart.entity.TerraCartEntity.SOUND_PITCH);
+        float serverVol = cart.getEntityData().get(TerracartEntity.SOUND_VOLUME);
+        float serverPitch = cart.getEntityData().get(TerracartEntity.SOUND_PITCH);
 
         // never reach absolute zero
         final float MIN_VOL = 0.001f;
