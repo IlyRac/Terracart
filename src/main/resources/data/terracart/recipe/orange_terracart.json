@@ -8,7 +8,7 @@
     ],
     "key": {
         "D": "minecraft:orange_dye",
-        "T": "terracart:terracart"
+        "T": "#terracart:terracarts"
     },
     "result": {
         "id": "terracart:orange_terracart",

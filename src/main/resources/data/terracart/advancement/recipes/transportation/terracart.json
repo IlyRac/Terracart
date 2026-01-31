@@ -11,12 +11,12 @@
         ]
       }
     },
-    "has_cart_wheel": {
+    "has_terracart_wheel": {
       "trigger": "minecraft:inventory_changed",
       "conditions": {
         "items": [
           {
-            "items": "terracart:cart_wheel"
+            "items": "terracart:terracart_wheel"
           }
         ]
       }
@@ -31,7 +31,7 @@
   "requirements": [
     [
       "has_the_recipe",
-      "has_cart_wheel",
+      "has_terracart_wheel",
       "has_minecart"
     ]
   ],

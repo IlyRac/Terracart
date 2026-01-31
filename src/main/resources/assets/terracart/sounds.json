@@ -2,5 +2,17 @@
   "terracart_sound": {
     "subtitle": "sound.terracart.sound",
     "sounds": ["terracart:terracart_sound"]
+  },
+  "terracart_refuel": {
+    "subtitle": "sound.terracart.refuel",
+    "sounds": ["terracart:terracart_refuel"]
+  },
+  "terracart_crash": {
+    "subtitle": "sound.terracart.crash",
+    "sounds": ["terracart:terracart_crash"]
+  },
+  "terracart_hit": {
+    "subtitle": "sound.terracart.hit",
+    "sounds": ["terracart:terracart_hit"]
   }
 }

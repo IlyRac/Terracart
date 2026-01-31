@@ -7,11 +7,11 @@
     ],
     "key": {
         "B": "minecraft:black_wool",
-        "I": "minecraft:iron_ingot",
-        "N": "minecraft:iron_nugget"
+        "N": "minecraft:iron_nugget",
+        "I": "minecraft:iron_ingot"
     },
     "result": {
-        "id": "terracart:cart_wheel",
-        "count": 1
+        "id": "terracart:terracart_wheel",
+        "count": 2
     }
 }

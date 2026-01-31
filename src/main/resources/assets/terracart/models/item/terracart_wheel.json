@@ -2,8 +2,8 @@
 	"format_version": "1.21.11",
 	"texture_size": [32, 32],
 	"textures": {
-		"0": "terracart:item/cart_wheel",
-		"particle": "terracart:item/cart_wheel"
+		"0": "terracart:item/terracart_wheel",
+		"particle": "terracart:item/terracart_wheel"
 	},
 	"elements": [
 		{

@@ -43,11 +43,11 @@ public class ModItems {
         });
 
         ItemGroupEvents.modifyEntriesEvent(CreativeModeTabs.INGREDIENTS).register(
-            entries -> entries.addAfter(Items.PHANTOM_MEMBRANE, CART_WHEEL)
+            entries -> entries.addAfter(Items.PHANTOM_MEMBRANE, TERRRACART_WHEEL)
         );
     }
 
-    public static final Item CART_WHEEL = register("cart_wheel",
+    public static final Item TERRRACART_WHEEL = register("terracart_wheel",
             Item::new,
             new Item.Properties().stacksTo(16));
 

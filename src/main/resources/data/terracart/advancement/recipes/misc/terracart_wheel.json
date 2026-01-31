@@ -24,7 +24,7 @@
     "has_the_recipe": {
       "trigger": "minecraft:recipe_unlocked",
       "conditions": {
-        "recipe": "terracart:cart_wheel"
+        "recipe": "terracart:terracart_wheel"
       }
     }
   },
@@ -36,6 +36,6 @@
     ]
   ],
   "rewards": {
-    "recipes": ["terracart:cart_wheel"]
+    "recipes": ["terracart:terracart_wheel"]
   }
 }
