@@ -9,6 +9,7 @@ import net.minecraft.network.syncher.EntityDataAccessor;
 import net.minecraft.network.syncher.EntityDataSerializers;
 import net.minecraft.network.syncher.SynchedEntityData;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.Mth;
 import net.minecraft.world.InteractionHand;
@@ -288,6 +289,52 @@ public class TerracartEntity extends VehicleEntity {
     public @NonNull InteractionResult interact(@NonNull Player player, @NonNull InteractionHand hand) {
         ItemStack stack = player.getItemInHand(hand);
 
+        // -------- REPAIR WITH IRON BLOCK (full heal, only if below 50%) --------
+        if (stack.is(Items.IRON_BLOCK)) {
+            // refuse like fuel logic if health >= 50%
+            if (this.getHealth() >= MAX_HEALTH * 0.5f) {
+                player.displayClientMessage(
+                        Component.literal("cannot repair, health is above 50%."),
+                        true
+                );
+                return InteractionResult.SUCCESS;
+            }
+
+            // full repair
+            this.setHealth(MAX_HEALTH);
+
+            if (this.level() instanceof ServerLevel serverLevel) {
+                serverLevel.playSound(
+                        /* player */ null,
+                        this.getX(), this.getY(), this.getZ(),
+                        SoundEvents.IRON_GOLEM_REPAIR,
+                        SoundSource.BLOCKS,
+                        1.0f,
+                        1.0f + (this.random.nextFloat() - 0.5f) * 0.15f
+                );
+
+                serverLevel.sendParticles(
+                        ParticleTypes.HAPPY_VILLAGER,
+                        this.getX(),
+                        this.getY() + 0.6,
+                        this.getZ(),
+                        12,   // count
+                        0.25, 0.25, 0.25,
+                        0.05
+                );
+            }
+
+            if (!player.isCreative()) stack.shrink(1);
+
+            player.displayClientMessage(
+                    Component.literal("TerraCart fully repaired."),
+                    true
+            );
+
+            return InteractionResult.SUCCESS;
+        }
+
+
         if (stack.is(Items.COAL_BLOCK)) {
             if (getFuelPercent() >= 0.5f) {
                 player.displayClientMessage(
@@ -550,7 +597,7 @@ public class TerracartEntity extends VehicleEntity {
             this.destroy(serverLevel, this.damageSources().generic());
         }
 
-        hitCooldown = 20; // cooldown ~1 second
+        hitCooldown = 30; // cooldown ~1 second
     }
 
     private boolean isInFireBlock() {
@@ -714,7 +761,7 @@ public class TerracartEntity extends VehicleEntity {
             // Reduce horizontal velocity by (1 - glideFactor) each tick (linear glide)
             horizontal = horizontal.scale(Math.max(0.0, 1.0 - glideFactor));
 
-            // small deadzone: snap very small speeds to zero to avoid forever tiny drift
+            // small dead-zone: snap very small speeds to zero to avoid forever tiny drift
             if (horizontal.lengthSqr() < 1.0E-6) horizontal = Vec3.ZERO;
 
             // damp vertical less, keep some upward motion if present but cap falling speed a bit
@@ -806,13 +853,9 @@ public class TerracartEntity extends VehicleEntity {
         }
     }
 
-    private int impactBrakeTicks = 0;
-
-
     private void tickCooldowns() {
         if (engineSoundCooldown > 0) engineSoundCooldown--;
         if (hitCooldown > 0) hitCooldown--;
-        if (impactBrakeTicks > 0) impactBrakeTicks--;
     }
 
     private void handleEntityCollisions(double speed) {
@@ -830,7 +873,7 @@ public class TerracartEntity extends VehicleEntity {
 
             // damage
             if (hitCooldown == 0 && speed > 0.1 &&
-                    entity instanceof LivingEntity living && living != this.getControllingPassenger()) {
+                entity instanceof LivingEntity living && living != this.getControllingPassenger()) {
 
                 float damage = Mth.clamp((float)(speed * 6.0), 1.5F, 5.0F);
 
@@ -840,8 +883,8 @@ public class TerracartEntity extends VehicleEntity {
                         damage
                 );
 
-/*                Vec3 knockback = entity.position().subtract(this.position()).normalize().scale(0.5 + speed);
-                living.push(knockback.x, 0.15, knockback.z);*/
+                Vec3 knockback = entity.position().subtract(this.position()).normalize().scale(0.5 + speed);
+                living.push(knockback.x, 0.15, knockback.z);
 
                 hitCooldown = 20;
             }
@@ -849,52 +892,55 @@ public class TerracartEntity extends VehicleEntity {
     }
 
     private void handleFallDamageOnLand() {
-        if (this.level().isClientSide()) return; // server only
-
-        // We landed this tick
+        // Run on both Client and Server
         if (this.wasAirborne && this.onGround()) {
             double fallDistance = this.airborneStartY - this.getY();
 
             if (fallDistance > 3.5) {
-                float damage = (float)((fallDistance - 3.5) * 0.75);
-                damage = Mth.clamp(damage, 1.0f, 10.0f);
+                // --- UPDATED LOGIC START ---
+                // 15% speed loss per block past 3.5
+                double impactSeverity = (fallDistance - 3.5) * 0.15;
 
-                // apply damage directly to health
-                float newHealth = this.getHealth() - damage;
-                this.setHealth(newHealth);
+                // Cap the loss at 90% (0.9).
+                // This ensures speedRetention is at least 0.1 (10%)
+                double cappedImpact = Math.min(impactSeverity, 0.9);
+                double speedRetention = 1.0 - cappedImpact;
 
-                // play crash sound + particles (server only)
-                if (this.level() instanceof ServerLevel serverLevel) {
-                    serverLevel.playSound(
-                            null,
-                            this.getX(), this.getY(), this.getZ(),
-                            ModSounds.TERRACART_CRASH,            // crash sound for falling
-                            SoundSource.NEUTRAL,
-                            0.6F,
-                            1.0F + (this.random.nextFloat() - 0.5F) * 0.2F
-                    );
+                this.currentSpeed *= speedRetention;
+                // --- UPDATED LOGIC END ---
 
-                    serverLevel.sendParticles(
-                            ParticleTypes.SQUID_INK,
-                            this.getX(), this.getY() + 1.0, this.getZ(),
-                            6, 0.12, 0.12, 0.12, 0.08
-                    );
+                // SERVER ONLY: Damage and effects
+                if (!this.level().isClientSide()) {
+                    float damage = (float)((fallDistance - 3.5) * 0.75);
+                    damage = Mth.clamp(damage, 1.0f, 10.0f);
 
-                    // destroy if health depleted
-                    if (newHealth <= 0.0f) {
-                        this.destroy(serverLevel, this.damageSources().fall());
+                    float newHealth = this.getHealth() - damage;
+                    this.setHealth(newHealth);
+
+                    if (this.level() instanceof ServerLevel serverLevel) {
+                        serverLevel.playSound(
+                                null, this.getX(), this.getY(), this.getZ(),
+                                ModSounds.TERRACART_CRASH,
+                                SoundSource.NEUTRAL,
+                                0.6F,
+                                1.0F
+                        );
+
+                        serverLevel.sendParticles(
+                                ParticleTypes.SQUID_INK,
+                                this.getX(), this.getY() + 1.0, this.getZ(),
+                                6, 0.12, 0.12, 0.12, 0.08);
+
+                        if (newHealth <= 0.0f) {
+                            this.destroy(serverLevel, this.damageSources().fall());
+                        }
                     }
+                    this.hitCooldown = Math.max(this.hitCooldown, 20);
                 }
-
-                // prevent immediate reapplication
-                this.hitCooldown = Math.max(this.hitCooldown, 20);
             }
-
-            // reset airborne flag after landing
             this.wasAirborne = false;
         }
 
-        // start tracking when we leave the ground
         if (!this.onGround() && !this.wasAirborne) {
             this.wasAirborne = true;
             this.airborneStartY = this.getY();

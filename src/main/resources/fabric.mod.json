@@ -3,7 +3,7 @@
 	"id": "terracart",
 	"version": "${version}",
 	"name": "Terracart",
-	"description": "Terracart Adds a fun drivable cart vehicle with fuel, colors, sounds, particles, and smooth movement — simple, fun, and vanilla-friendly.",
+	"description": "Terracart Adds a fun drivable cart vehicle with fuel, colors, sounds, particles, and smooth movement, in a simple and vanilla-friendly way.",
 	"authors": [
 		"IlyRac"
 	],
