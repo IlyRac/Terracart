@@ -1,9 +1,10 @@
 {
   "item.terracart.terracart_wheel": "Terracart Wheel",
-  "sound.terracart.sound": "Terracart sound",
+  "sound.terracart.moving_sound": "Terracart moving sound",
   "sound.terracart.refuel": "Terracart refuel",
   "sound.terracart.crash": "Terracart crash",
   "sound.terracart.hit": "Terracart hit",
+  "sound.terracart.repair": "Terracart repair",
   "item.terracart.terracart": "Terracart",
   "item.terracart.black_terracart": "Black Terracart",
   "item.terracart.blue_terracart": "Blue Terracart",

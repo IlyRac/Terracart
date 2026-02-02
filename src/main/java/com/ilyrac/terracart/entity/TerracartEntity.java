@@ -9,7 +9,6 @@ import net.minecraft.network.syncher.EntityDataAccessor;
 import net.minecraft.network.syncher.EntityDataSerializers;
 import net.minecraft.network.syncher.SynchedEntityData;
 import net.minecraft.server.level.ServerLevel;
-import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.Mth;
 import net.minecraft.world.InteractionHand;
@@ -45,6 +44,9 @@ public class TerracartEntity extends VehicleEntity {
         // initialize last position trackers so first tick delta is sane
         this.lastX = this.getX();
         this.lastZ = this.getZ();
+
+        this.yRotO = this.getYRot();
+        this.xRotO = this.getXRot();
     }
 
     /* -------------------- Save / Load -------------------- */
@@ -121,7 +123,7 @@ public class TerracartEntity extends VehicleEntity {
     }
 
     // animation and speed
-    private double currentSpeed = 0.0;
+    private double currentSpeed = 0.0 ;
     private float prevWheelRotation = 0.0f;
     public float getWheelRotation() {
         return this.entityData.get(WHEEL_ROTATION);
@@ -136,7 +138,7 @@ public class TerracartEntity extends VehicleEntity {
     public float getSpeedBps() { return speedBps; }
 
     // particles and sound
-    private int engineSoundCooldown = 0;
+    private int MovingSoundCooldown = 0;
     private double lastX;
     private double lastZ;
 
@@ -147,7 +149,6 @@ public class TerracartEntity extends VehicleEntity {
     // Health
     private boolean wasAirborne = false;
     private double airborneStartY = 0.0;
-    private static final float DAMAGE_REDUCTION = 1.2f;
     public static final float MAX_HEALTH = 100.0f;
     public float getHealth() {
         return this.entityData.get(CURRENT_HEALTH);
@@ -223,13 +224,17 @@ public class TerracartEntity extends VehicleEntity {
 
     @Override
     public void push(@NonNull Entity entity) {
-        if (!this.isPassengerOfSameVehicle(entity)) {
-            Vec3 delta = entity.position().subtract(this.position());
-            if (delta.lengthSqr() > 1.0E-4) {
-                delta = delta.normalize().scale(0.002);
-                this.setDeltaMovement(this.getDeltaMovement().subtract(delta));
-            }
-        }
+        if (this.isPassengerOfSameVehicle(entity)) return;
+
+        Vec3 delta = entity.position().subtract(this.position());
+        double dsq = delta.lengthSqr();
+
+        // if the entities are essentially at the same point, do nothing (avoid NaN/huge impulses)
+        if (dsq <= 1.0E-6) return;
+
+        // small scaled push to the cart so players can push it, but capped
+        Vec3 n = delta.normalize().scale(0.002);
+        this.setDeltaMovement(this.getDeltaMovement().subtract(n));
     }
 
     @Override
@@ -244,7 +249,7 @@ public class TerracartEntity extends VehicleEntity {
                     this.getX(), this.getY(), this.getZ(),
                     ModSounds.TERRACART_HIT,
                     SoundSource.NEUTRAL,
-                    0.5F,
+                    1.0F,
                     1.0F + (this.random.nextFloat() - 0.5F) * 0.2F
             );
             serverLevel.sendParticles(
@@ -256,7 +261,7 @@ public class TerracartEntity extends VehicleEntity {
             return true;
         }
 
-        float scaledAmount = amount * DAMAGE_REDUCTION;
+        float scaledAmount = amount * 0.7f;
         float newHealth = this.getHealth() - scaledAmount;
         this.setHealth(newHealth);
 
@@ -266,7 +271,7 @@ public class TerracartEntity extends VehicleEntity {
                 this.getX(), this.getY(), this.getZ(),
                 ModSounds.TERRACART_HIT,
                 SoundSource.NEUTRAL,
-                0.5F,
+                1.0F,
                 1.0F + (this.random.nextFloat() - 0.5F) * 0.2F
         );
         serverLevel.sendParticles(
@@ -307,7 +312,7 @@ public class TerracartEntity extends VehicleEntity {
                 serverLevel.playSound(
                         /* player */ null,
                         this.getX(), this.getY(), this.getZ(),
-                        SoundEvents.IRON_GOLEM_REPAIR,
+                        ModSounds.TERRACART_REPAIR,
                         SoundSource.BLOCKS,
                         1.0f,
                         1.0f + (this.random.nextFloat() - 0.5f) * 0.15f
@@ -566,12 +571,12 @@ public class TerracartEntity extends VehicleEntity {
         if (speed < 1.0E-6) return;
 
         // compute damage based on horizontal speed
-        if (speed <= 0.35) {
+        if (speed <= 0.3) {
             return;
         }
 
         // apply damage
-        float damage = (float) Mth.clamp(speed * 10, 1.0f, 10.0f);
+        float damage = (float) Mth.clamp(speed * 6, 1.0f, 6.0f);
         this.setHealth(this.getHealth() - damage);
 
         // play crash sound + particles
@@ -629,13 +634,13 @@ public class TerracartEntity extends VehicleEntity {
                         this.getX(), this.getY(), this.getZ(),
                         ModSounds.TERRACART_HIT,
                         SoundSource.NEUTRAL,
-                        0.5F,
+                        1.0F,
                         1.0F
                 );
                 serverLevel.sendParticles(
                         ParticleTypes.FLAME,
                         this.getX(), this.getY() + 0.5, this.getZ(),
-                        6, 0.1, 0.1, 0.1, 0.05
+                        10, 0.1, 0.1, 0.1, 0.1
                 );
             }
 
@@ -643,7 +648,7 @@ public class TerracartEntity extends VehicleEntity {
                 this.destroy(serverLevel, this.damageSources().inFire());
             }
 
-            fireCooldown = 10;
+            fireCooldown = 15;
         }
     }
 
@@ -698,26 +703,30 @@ public class TerracartEntity extends VehicleEntity {
         }
 
         if (this.level() instanceof ServerLevel serverLevel) {
-            // route damage through your hurtServer so creative-destruction and drops remain consistent
-            this.hurtServer(serverLevel, this.damageSources().lava(), 10.0f);
+            float damage = 10.0f;
+            this.setHealth(this.getHealth() - damage);
 
             serverLevel.playSound(
                     null,
                     this.getX(), this.getY(), this.getZ(),
                     ModSounds.TERRACART_HIT,
                     SoundSource.NEUTRAL,
-                    0.8F,
-                    0.9F + this.random.nextFloat() * 0.2F
+                    1.0F,
+                    1.0F + this.random.nextFloat() * 0.2F
             );
 
             serverLevel.sendParticles(
                     ParticleTypes.FLAME,
                     this.getX(), this.getY() + 0.5, this.getZ(),
-                    10, 0.25, 0.25, 0.25, 0.03
+                    10, 0.25, 0.25, 0.25, 0.1
             );
         }
 
-        fireCooldown = 10;
+        if (this.getHealth() <= 0.0f && this.level() instanceof ServerLevel serverLevel) {
+            this.destroy(serverLevel, this.damageSources().inFire());
+        }
+
+        fireCooldown = 20;
     }
 
 
@@ -846,15 +855,22 @@ public class TerracartEntity extends VehicleEntity {
                     this.setDeltaMovement(this.getDeltaMovement().multiply(1.0, 0.0, 1.0));
                 }
             } else {
-                // too tall or no valid step - apply slight slowdown (but damage was handled earlier)
-                handleBlockImpactBeforeMove(originalMotion);
-                currentSpeed *= 0.95;
+                // If the collision is caused by a BLOCK -> run the block impact (damage & particles).
+                // If the collision is caused by an ENTITY -> do only a small slowdown, no block-impact damage.
+                if (blockedByBlock) {
+                    handleBlockImpactBeforeMove(originalMotion);
+                    currentSpeed *= 0.95;
+                } else {
+                    // Collision caused by entity (or some non-block obstruction) — don't treat it as a wall crash.
+                    // Apply a light slowdown so cart doesn't instantly tunnel, but avoid damage/bounce.
+                    currentSpeed *= 0.5;
+                }
             }
         }
     }
 
     private void tickCooldowns() {
-        if (engineSoundCooldown > 0) engineSoundCooldown--;
+        if (MovingSoundCooldown > 0) MovingSoundCooldown--;
         if (hitCooldown > 0) hitCooldown--;
     }
 
@@ -868,23 +884,33 @@ public class TerracartEntity extends VehicleEntity {
         for (Entity entity : list) {
             if (entity.hasPassenger(this)) continue;
 
-            // push
+            // Always apply cartilage push (so cart and mobs don't phase), but guard tiny separation
             this.push(entity);
 
-            // damage
+            // damage + knockback only when cooldown elapsed AND moving sufficiently AND entity is a LivingEntity
             if (hitCooldown == 0 && speed > 0.1 &&
-                entity instanceof LivingEntity living && living != this.getControllingPassenger()) {
+                    entity instanceof LivingEntity living && living != this.getControllingPassenger()) {
+
+                // compute separation and discard if too small to get a stable direction
+                Vec3 sep = entity.position().subtract(this.position());
+                double sepSq = sep.lengthSqr();
+                if (sepSq <= 1.0E-6) {
+                    // overlapping placement: skip damage/knockback this tick to avoid crazy impulses
+                    continue;
+                }
 
                 float damage = Mth.clamp((float)(speed * 6.0), 1.5F, 5.0F);
 
-                //noinspection deprecation
-                living.hurt(
-                        this.damageSources().generic(),
-                        damage
-                );
+                // Use server-side hurt to keep behavior consistent
+                if (!this.level().isClientSide()) {
+                    //noinspection deprecation
+                    living.hurt(this.damageSources().generic(), damage);
 
-                Vec3 knockback = entity.position().subtract(this.position()).normalize().scale(0.5 + speed);
-                living.push(knockback.x, 0.15, knockback.z);
+                    // knockback direction from cart -> entity, normalized and scaled
+                    Vec3 knockbackDir = sep.normalize();
+                    double kbStrength = 0.5 + Math.min(speed, 2.0); // cap added so huge speeds don't produce wild KB
+                    living.push(knockbackDir.x * kbStrength, 0.15, knockbackDir.z * kbStrength);
+                }
 
                 hitCooldown = 20;
             }
@@ -911,8 +937,8 @@ public class TerracartEntity extends VehicleEntity {
 
                 // SERVER ONLY: Damage and effects
                 if (!this.level().isClientSide()) {
-                    float damage = (float)((fallDistance - 3.5) * 0.75);
-                    damage = Mth.clamp(damage, 1.0f, 10.0f);
+                    float damage = (float)((fallDistance - 3.5) * 0.5);
+                    damage = Mth.clamp(damage, 1.0f, 6.0f);
 
                     float newHealth = this.getHealth() - damage;
                     this.setHealth(newHealth);

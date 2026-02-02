@@ -9,7 +9,7 @@ public class TerracartSoundInstance extends AbstractTickableSoundInstance {
     private final TerracartEntity cart;
 
     public TerracartSoundInstance(TerracartEntity cart) {
-        super(ModSounds.TERRACART_SOUND, SoundSource.NEUTRAL, cart.level().getRandom());
+        super(ModSounds.TERRACART_MOVING_SOUND, SoundSource.NEUTRAL, cart.level().getRandom());
         this.cart = cart;
         this.looping = true;
         this.delay = 0;
