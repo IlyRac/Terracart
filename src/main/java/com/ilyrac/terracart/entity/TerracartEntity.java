@@ -294,90 +294,67 @@ public class TerracartEntity extends VehicleEntity {
     public @NonNull InteractionResult interact(@NonNull Player player, @NonNull InteractionHand hand) {
         ItemStack stack = player.getItemInHand(hand);
 
-        // -------- REPAIR WITH IRON BLOCK (full heal, only if below 50%) --------
-        if (stack.is(Items.IRON_BLOCK)) {
-            // refuse like fuel logic if health >= 50%
-            if (this.getHealth() >= MAX_HEALTH * 0.5f) {
-                player.displayClientMessage(
-                        Component.literal("cannot repair, health is above 50%."),
-                        true
-                );
-                return InteractionResult.SUCCESS;
+        // =============================================================
+        //  REPAIR LOGIC (Iron Ingot)
+        // =============================================================
+        if (stack.is(Items.IRON_INGOT)) {
+            // 1. Check if fully repaired
+            if (this.getHealth() >= MAX_HEALTH) {
+                player.displayClientMessage(Component.literal("Terracart is already fully repaired."), true);
+                return InteractionResult.SUCCESS; // Stops player from mounting
             }
 
-            // full repair
-            this.setHealth(MAX_HEALTH);
+            // 2. Add 25% Health
+            float healAmount = MAX_HEALTH * 0.25f;
+            this.setHealth(this.getHealth() + healAmount);
 
+            // 3. Play Sound & Particles
             if (this.level() instanceof ServerLevel serverLevel) {
-                serverLevel.playSound(
-                        /* player */ null,
-                        this.getX(), this.getY(), this.getZ(),
-                        ModSounds.TERRACART_REPAIR,
-                        SoundSource.BLOCKS,
-                        1.0f,
-                        1.0f + (this.random.nextFloat() - 0.5f) * 0.15f
-                );
-
-                serverLevel.sendParticles(
-                        ParticleTypes.HAPPY_VILLAGER,
-                        this.getX(),
-                        this.getY() + 0.6,
-                        this.getZ(),
-                        12,   // count
-                        0.25, 0.25, 0.25,
-                        0.05
-                );
+                serverLevel.playSound(null, this.getX(), this.getY(), this.getZ(),
+                        ModSounds.TERRACART_REPAIR, SoundSource.BLOCKS, 1.0f, 1.0f + (this.random.nextFloat() - 0.5f) * 0.15f);
+                serverLevel.sendParticles(ParticleTypes.HAPPY_VILLAGER,
+                        this.getX(), this.getY() + 0.6, this.getZ(), 12, 0.25, 0.25, 0.25, 0.05);
             }
 
+            // 4. Consume Item
             if (!player.isCreative()) stack.shrink(1);
-
-            player.displayClientMessage(
-                    Component.literal("TerraCart fully repaired."),
-                    true
-            );
-
+            player.displayClientMessage(Component.literal("Terracart repaired (+25%)"), true);
             return InteractionResult.SUCCESS;
         }
 
+        // =============================================================
+        //  REFUEL LOGIC (Coal)
+        // =============================================================
+        if (stack.is(Items.COAL)) {
+            int currentFuel = this.entityData.get(FUEL_TICKS);
 
-        if (stack.is(Items.COAL_BLOCK)) {
-            if (getFuelPercent() >= 0.5f) {
-                player.displayClientMessage(
-                        Component.literal("cannot refuel, Fuel is above 50%."),
-                        true
-                );
-                return InteractionResult.SUCCESS;
+            // 1. BUFFER CHECK: If fuel is > 90%, block interaction.
+            // This prevents "spamming" and wasting a coal for only 1% gain.
+            if (currentFuel > (MAX_FUEL * 0.90)) {
+                player.displayClientMessage(Component.literal("Fuel tank is nearly full!"), true);
+                return InteractionResult.SUCCESS; // Stops player from mounting
             }
 
-            this.addFuel(MAX_FUEL);
+            // 2. Add 25% Fuel
+            this.addFuel((int) (MAX_FUEL * 0.25));
 
+            // 3. Play Sound & Particles
             if (this.level() instanceof ServerLevel serverLevel) {
-                serverLevel.playSound(
-                        /* player */ null,
-                        this.getX(), this.getY(), this.getZ(),
-                        ModSounds.TERRACART_REFUEL,
-                        SoundSource.BLOCKS,
-                        1.0f,
-                        1.0f
-                );
-                serverLevel.sendParticles(
-                        ParticleTypes.CAMPFIRE_COSY_SMOKE,
-                        this.getX(),
-                        this.getY() + 0.6,
-                        this.getZ(),
-                        6,        // count
-                        0.25,      // spread X
-                        0.15,      // spread Y
-                        0.25,      // spread Z
-                        0.1       // speed
-                );
+                serverLevel.playSound(null, this.getX(), this.getY(), this.getZ(),
+                        ModSounds.TERRACART_REFUEL, SoundSource.BLOCKS, 1.0f, 1.0f);
+                serverLevel.sendParticles(ParticleTypes.CAMPFIRE_COSY_SMOKE,
+                        this.getX(), this.getY() + 0.6, this.getZ(), 6, 0.25, 0.15, 0.25, 0.1);
             }
 
+            // 4. Consume Item
             if (!player.isCreative()) stack.shrink(1);
-            player.displayClientMessage(Component.literal("TerraCart refueled."), true);
+            player.displayClientMessage(Component.literal("TerraCart refueled (+25%)"), true);
             return InteractionResult.SUCCESS;
         }
 
+        // =============================================================
+        //  RIDING LOGIC
+        // =============================================================
         player.startRiding(this);
         return InteractionResult.SUCCESS;
     }
@@ -418,7 +395,6 @@ public class TerracartEntity extends VehicleEntity {
     protected void checkFallDamage(double y, boolean onGround, @NonNull BlockState state, @NonNull BlockPos pos) {
         // avoid fall/landing sounds
     }
-
 
     /* -------------------- Dimensions -------------------- */
 
@@ -688,7 +664,17 @@ public class TerracartEntity extends VehicleEntity {
 
     private void syncAndBurnFuel() {
         fuelTicks = entityData.get(FUEL_TICKS);
-        if (fuelTicks > 0) fuelTicks--;
+
+        // LOGIC CHANGE: Only burn fuel if the cart is actually moving.
+        // We check if horizontal speed is significant.
+        boolean isMoving = this.getDeltaMovement().horizontalDistanceSqr() > 0.0001;
+
+        // Also burn fuel if there is a driver (idling engine), or remove "hasPassenger"
+        // if you want free idling. I recommend requiring movement:
+        if (fuelTicks > 0 && isMoving) {
+            fuelTicks--;
+        }
+
         entityData.set(FUEL_TICKS, fuelTicks);
     }
 
