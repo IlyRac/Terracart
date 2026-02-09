@@ -21,7 +21,6 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.gamerules.GameRules;
@@ -32,59 +31,63 @@ import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.NotNull;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
+
 import java.util.List;
+
+import static net.minecraft.world.entity.vehicle.boat.AbstractBoat.canVehicleCollide;
 
 public class TerracartEntity extends VehicleEntity {
 
-    /* -------------------- Construction -------------------- */
+    // ================================================================================================================
+    //    1. CONSTANTS & SYNCED DATA
+    // ================================================================================================================
+
+    public static final float MAX_HEALTH = 100.0f;
+    public static final int MAX_FUEL = 24000;
+
+    private static final EntityDataAccessor<Integer> CART_COLOR = SynchedEntityData.defineId(TerracartEntity.class, EntityDataSerializers.INT);
+    private static final EntityDataAccessor<Integer> FUEL_TICKS = SynchedEntityData.defineId(TerracartEntity.class, EntityDataSerializers.INT);
+    private static final EntityDataAccessor<Float> WHEEL_ROTATION = SynchedEntityData.defineId(TerracartEntity.class, EntityDataSerializers.FLOAT);
+    private static final EntityDataAccessor<Boolean> SOUND_ACTIVE = SynchedEntityData.defineId(TerracartEntity.class, EntityDataSerializers.BOOLEAN);
+    public static final EntityDataAccessor<Float> SOUND_VOLUME = SynchedEntityData.defineId(TerracartEntity.class, EntityDataSerializers.FLOAT);
+    public static final EntityDataAccessor<Float> SOUND_PITCH = SynchedEntityData.defineId(TerracartEntity.class, EntityDataSerializers.FLOAT);
+    private static final EntityDataAccessor<Float> CURRENT_HEALTH = SynchedEntityData.defineId(TerracartEntity.class, EntityDataSerializers.FLOAT);
+
+    // ================================================================================================================
+    //    2. FIELDS (STATE)
+    // ================================================================================================================
+
+    // Movement State
+    private float driverForward = 0.0f;
+    private float driverStrafe = 0.0f;
+    private double currentSpeed = 0.0;
+    private double lastX, lastZ;
+
+    // Visuals & Audio
+    private float prevWheelRotation = 0.0f;
+    private int MovingSoundCooldown = 0;
+    private Vec3 lastPos = Vec3.ZERO;
+    private float speedBps = 0.0F;
+
+    // Cooldowns
+    private int hitCooldown = 0;
+    private int fireCooldown = 0;
+
+    // Falling Logic
+    private boolean wasAirborne = false;
+    private double airborneStartY = 0.0;
+
+    // ================================================================================================================
+    //    3. CONSTRUCTION & DATA SYNC
+    // ================================================================================================================
 
     public TerracartEntity(EntityType<? extends TerracartEntity> type, Level level) {
         super(type, level);
-
-        // initialize last position
         this.lastX = this.getX();
         this.lastZ = this.getZ();
-
         this.yRotO = this.getYRot();
         this.xRotO = this.getXRot();
     }
-
-    /* -------------------- Save / Load -------------------- */
-
-    @Override
-    protected void addAdditionalSaveData(@NonNull ValueOutput output) {
-        output.putInt("CartColor", getCartColor());
-        output.putInt("FuelTicks", fuelTicks);
-        output.putFloat("Health", this.getHealth());
-    }
-
-    @Override
-    protected void readAdditionalSaveData(@NonNull ValueInput input) {
-        int color = input.getIntOr("CartColor", -1);
-        entityData.set(CART_COLOR, color);
-
-        fuelTicks = input.getIntOr("FuelTicks", 0);
-        entityData.set(FUEL_TICKS, fuelTicks);
-
-        this.setHealth(input.getFloatOr("Health", MAX_HEALTH));
-    }
-
-    /* -------------------- Synced Data -------------------- */
-
-    private static final EntityDataAccessor<Integer> CART_COLOR =
-            SynchedEntityData.defineId(TerracartEntity.class, EntityDataSerializers.INT);
-    private static final EntityDataAccessor<Integer> FUEL_TICKS =
-            SynchedEntityData.defineId(TerracartEntity.class, EntityDataSerializers.INT);
-    private static final EntityDataAccessor<Float> WHEEL_ROTATION =
-            SynchedEntityData.defineId(TerracartEntity.class, EntityDataSerializers.FLOAT);
-    public static final EntityDataAccessor<Boolean> SOUND_ACTIVE =
-            SynchedEntityData.defineId(TerracartEntity.class, EntityDataSerializers.BOOLEAN);
-    public static final EntityDataAccessor<Float> SOUND_VOLUME =
-            SynchedEntityData.defineId(TerracartEntity.class, EntityDataSerializers.FLOAT);
-    public static final EntityDataAccessor<Float> SOUND_PITCH =
-            SynchedEntityData.defineId(TerracartEntity.class, EntityDataSerializers.FLOAT);
-    private static final EntityDataAccessor<Float> CURRENT_HEALTH =
-            SynchedEntityData.defineId(TerracartEntity.class, EntityDataSerializers.FLOAT);
 
     @Override
     protected void defineSynchedData(SynchedEntityData.@NonNull Builder builder) {
@@ -98,540 +101,443 @@ public class TerracartEntity extends VehicleEntity {
         builder.define(CURRENT_HEALTH, MAX_HEALTH);
     }
 
-    /* -------------------- State -------------------- */
-
-    private float driverForward = 0.0f;
-    private float driverStrafe  = 0.0f;
-    public void setDriverInput(float forward, float strafe) {
-        this.driverForward = Mth.clamp(forward, -1.0f, 1.0f);
-        this.driverStrafe  = Mth.clamp(strafe, -1.0f, 1.0f);
-    }
-    // Colored Carts
-    public void setCartColor(int color) {
-        if (color < 0) this.entityData.set(CART_COLOR, -1);
-        else this.entityData.set(CART_COLOR, Math.min(15, color));
-    }
-    public int getCartColor() {
-        return this.entityData.get(CART_COLOR);
-    }
-    // animation and speed
-    private double currentSpeed = 0.0 ;
-    private float prevWheelRotation = 0.0f;
-    public float getWheelRotation() {
-        return this.entityData.get(WHEEL_ROTATION);
-    }
-    public float getPrevWheelRotation() {
-        return this.prevWheelRotation;
-    }
-    // speedometer
-    private Vec3 lastPos = Vec3.ZERO;
-    private float speedBps = 0.0F;
-    public float getSpeedBps() { return speedBps; }
-    // particles and sound
-    private int MovingSoundCooldown = 0;
-    private double lastX;
-    private double lastZ;
-    // damage cooldown
-    private int hitCooldown = 0;
-    private int fireCooldown = 0;
-    // Health
-    private boolean wasAirborne = false;
-    private double airborneStartY = 0.0;
-    public static final float MAX_HEALTH = 100.0f;
-    public float getHealth() {
-        return this.entityData.get(CURRENT_HEALTH);
-    }
-    public void setHealth(float health) {
-        this.entityData.set(CURRENT_HEALTH, Mth.clamp(health, 0.0f, MAX_HEALTH));
-    }
-    public float getHealthPercent() {
-        return this.getHealth() / MAX_HEALTH;
-    }
-
-    /* -------------------- Fuel -------------------- */
-
-    public static final int MAX_FUEL = 24000;
-    private int fuelTicks = 1200;
-
-    public void addFuel(int amount) {
-        fuelTicks = Math.min(fuelTicks + amount, MAX_FUEL);
-        entityData.set(FUEL_TICKS, fuelTicks);
-    }
-
-    public boolean hasFuel() { return fuelTicks > 0; }
-
-    public float getFuelPercent() { return (float) fuelTicks / (float) MAX_FUEL; }
-
-    /* -------------------- Item / Drops -------------------- */
-
     @Override
-    protected @NonNull Item getDropItem() { return Items.AIR; }
-
-    @Override
-    protected void destroy(@NonNull ServerLevel level, @NonNull DamageSource source) {
-        this.kill(level);
-
-        if (!level.getGameRules().get(GameRules.ENTITY_DROPS)) return;
-
-        int ironCount = 3 + this.random.nextInt(5);
-        this.spawnAtLocation(level, new ItemStack(Items.IRON_INGOT, ironCount));
-        this.spawnAtLocation(level, ModItems.TERRRACART_WHEEL);
-        this.spawnAtLocation(level, Items.FURNACE);
+    protected void addAdditionalSaveData(@NonNull ValueOutput output) {
+        output.putInt("CartColor", getCartColor());
+        output.putInt("FuelTicks", this.getFuel());
+        output.putFloat("Health", this.getHealth());
     }
 
     @Override
-    public boolean isPickable() { return true; }
-
-    @Override
-    public @NotNull ItemStack getPickResult() {
-        int color = getCartColor();
-        if (color >= 0 && color < ModItems.COLORED_TERRACARTS.length) {
-            return new ItemStack(ModItems.COLORED_TERRACARTS[color]);
-        }
-        return new ItemStack(ModItems.TERRACART);
+    protected void readAdditionalSaveData(@NonNull ValueInput input) {
+        this.setCartColor(input.getIntOr("CartColor", -1));
+        this.setFuel(input.getIntOr("FuelTicks", 0));
+        this.setHealth(input.getFloatOr("Health", MAX_HEALTH));
     }
 
-    /* -------------------- Collision helpers -------------------- */
-
-    @Override
-    public boolean canBeCollidedWith(@Nullable Entity entity) { return true; }
-
-    @Override
-    public boolean canCollideWith(@Nullable Entity entity) {
-        return canVehicleCollide(this, entity);
-    }
-
-    public static boolean canVehicleCollide(Entity self, @Nullable Entity other) {
-        if (other == null) return false;
-        return (other.canBeCollidedWith(self) || other.isPushable())
-                && !self.isPassengerOfSameVehicle(other);
-    }
-
-    @Override
-    public boolean isPushable() { return true; }
-
-    @Override
-    public void push(@NonNull Entity entity) {
-        if (this.isPassengerOfSameVehicle(entity)) return;
-
-        Vec3 delta = entity.position().subtract(this.position());
-        double dsq = delta.lengthSqr();
-
-        // if the entities are essentially at the same point, do nothing (avoid NaN/huge impulses)
-        if (dsq <= 1.0E-6) return;
-
-        // small scaled push to the cart so players can push it, but capped
-        Vec3 n = delta.normalize().scale(0.002);
-        this.setDeltaMovement(this.getDeltaMovement().subtract(n));
-    }
-
-    @Override
-    public boolean hurtServer(@NotNull ServerLevel serverLevel, @NotNull DamageSource source, float amount) {
-        if (this.isRemoved() || this.isInvulnerableToBase(source)) return false;
-
-        // Check if damage is coming from a creative player
-        if (source.getEntity() instanceof Player player && player.isCreative()) {
-            // destroy immediately, no drops
-            serverLevel.playSound(
-                    null,
-                    this.getX(), this.getY(), this.getZ(),
-                    ModSounds.TERRACART_HIT,
-                    SoundSource.NEUTRAL,
-                    1.0F,
-                    1.0F + (this.random.nextFloat() - 0.5F) * 0.2F
-            );
-            serverLevel.sendParticles(
-                    ParticleTypes.SQUID_INK,
-                    this.getX(), this.getY() + 1, this.getZ(),
-                    5, 0.1, 0.1, 0.1, 0.1
-            );
-            this.discard(); // removes entity
-            return true;
-        }
-
-        float scaledAmount = amount * 0.7f;
-        float newHealth = this.getHealth() - scaledAmount;
-        this.setHealth(newHealth);
-
-        // play crash sound + particles
-        serverLevel.playSound(
-                null,
-                this.getX(), this.getY(), this.getZ(),
-                ModSounds.TERRACART_HIT,
-                SoundSource.NEUTRAL,
-                1.0F,
-                1.0F + (this.random.nextFloat() - 0.5F) * 0.2F
-        );
-        serverLevel.sendParticles(
-                ParticleTypes.SQUID_INK,
-                this.getX(), this.getY() + 1, this.getZ(),
-                5, 0.1, 0.1, 0.1, 0.1
-        );
-
-        if (newHealth <= 0) {
-            // regular destruction (drops)
-            this.destroy(serverLevel, source);
-        }
-
-        return true;
-    }
-
-    /* -------------------- Riding -------------------- */
-
-    @Override
-    public @NonNull InteractionResult interact(@NonNull Player player, @NonNull InteractionHand hand) {
-        ItemStack stack = player.getItemInHand(hand);
-
-        // =============================================================
-        //  REPAIR
-        // =============================================================
-        if (stack.is(Items.IRON_INGOT)) {
-            // 1. Check if fully repaired
-            if (this.getHealth() >= MAX_HEALTH) {
-                player.displayClientMessage(Component.literal("Terracart is already fully repaired."), true);
-                return InteractionResult.SUCCESS; // Stops player from mounting
-            }
-
-            // 2. Add 25% Health
-            float healAmount = MAX_HEALTH * 0.25f;
-            this.setHealth(this.getHealth() + healAmount);
-
-            // 3. Play Sound & Particles
-            if (this.level() instanceof ServerLevel serverLevel) {
-                serverLevel.playSound(null, this.getX(), this.getY(), this.getZ(),
-                        ModSounds.TERRACART_REPAIR, SoundSource.BLOCKS, 1.0f, 1.0f + (this.random.nextFloat() - 0.5f) * 0.15f);
-                serverLevel.sendParticles(ParticleTypes.HAPPY_VILLAGER,
-                        this.getX(), this.getY() + 0.6, this.getZ(), 12, 0.25, 0.25, 0.25, 0.05);
-            }
-
-            // 4. Consume Item
-            if (!player.isCreative()) stack.shrink(1);
-            player.displayClientMessage(Component.literal("Terracart repaired (+25%)"), true);
-            return InteractionResult.SUCCESS;
-        }
-
-        // =============================================================
-        //  REFUEL
-        // =============================================================
-        if (stack.is(Items.COAL)) {
-            int currentFuel = this.entityData.get(FUEL_TICKS);
-
-            // 1. BUFFER CHECK: If fuel is > 90%, block interaction.
-            // This prevents "spamming" and wasting a coal for only 1% gain.
-            if (currentFuel > (MAX_FUEL * 0.90)) {
-                player.displayClientMessage(Component.literal("Fuel tank is nearly full!"), true);
-                return InteractionResult.SUCCESS; // Stops player from mounting
-            }
-
-            // 2. Add 25% Fuel
-            this.addFuel((int) (MAX_FUEL * 0.25));
-
-            // 3. Play Sound & Particles
-            if (this.level() instanceof ServerLevel serverLevel) {
-                serverLevel.playSound(null, this.getX(), this.getY(), this.getZ(),
-                        ModSounds.TERRACART_REFUEL, SoundSource.BLOCKS, 1.0f, 1.0f);
-                serverLevel.sendParticles(ParticleTypes.CAMPFIRE_COSY_SMOKE,
-                        this.getX(), this.getY() + 0.6, this.getZ(), 6, 0.25, 0.15, 0.25, 0.1);
-            }
-
-            // 4. Consume Item
-            if (!player.isCreative()) stack.shrink(1);
-            player.displayClientMessage(Component.literal("TerraCart refueled (+25%)"), true);
-            return InteractionResult.SUCCESS;
-        }
-
-        // =============================================================
-        //  RIDING
-        // =============================================================
-        player.startRiding(this);
-        return InteractionResult.SUCCESS;
-    }
-
-    @Override
-    protected boolean canAddPassenger(@NonNull Entity passenger) {
-        return passenger instanceof Player && this.getPassengers().isEmpty();
-    }
-
-    @Override
-    public @Nullable LivingEntity getControllingPassenger() {
-        Entity e = this.getFirstPassenger();
-        return e instanceof LivingEntity living ? living : null;
-    }
-
-    @Override
-    public @NonNull Vec3 getPassengerRidingPosition(@NonNull Entity passenger) {
-        return this.position().add(0.0, 0.45, 0.0);
-    }
-
-    @Override
-    protected void removePassenger(@NonNull Entity passenger) {
-        super.removePassenger(passenger);
-    }
-
-    @Override
-    public boolean canRide(@NonNull Entity entity) {
-        // TerraCart may NEVER ride anything
-        return false;
-    }
-
-    @Override
-    protected void playStepSound(@NonNull BlockPos pos, @NonNull BlockState state) {
-        // suppress footstep sound + subtitle
-    }
-
-    @Override
-    protected void checkFallDamage(double y, boolean onGround, @NonNull BlockState state, @NonNull BlockPos pos) {
-        // avoid fall/landing sounds
-    }
-
-    /* -------------------- Dimensions -------------------- */
-
-    @Override
-    public @NonNull EntityDimensions getDimensions(@NonNull Pose pose) {
-        return EntityDimensions.fixed(2.0F, 1.0F);
-    }
-
-    /* -------------------- Physics helpers -------------------- */
-
-    private Vec3 computeStepUp(Vec3 motion, boolean blockedByBlock) {
-        if (!this.onGround()) return null;
-        if (motion.horizontalDistanceSqr() < 1.0E-6) return null;
-
-        AABB box = this.getBoundingBox();
-        for (double y = 0.2; y <= 1.0; y += 0.2) {
-            // move box up
-            AABB upBox = box.move(0.0, y, 0.0);
-            if (!this.level().noCollision(this, upBox)) continue;
-
-            // move forward
-            AABB forwardBox = upBox.move(motion.x, 0.0, motion.z);
-            if (!this.level().noCollision(this, forwardBox)) continue;
-
-            // If collision exists at current horizontal motion but step is possible → allow
-            if (!blockedByBlock) continue;
-
-            return new Vec3(motion.x, y, motion.z);
-        }
-        return null; // blocked, cannot step
-    }
-
-    /* -------------------- Particles -------------------- */
-
-    private void spawnMovementParticles() {
-        if (!this.onGround()) return;
-
-        double dx = this.getX() - lastX;
-        double dz = this.getZ() - lastZ;
-        double speed = Math.sqrt(dx * dx + dz * dz);
-        if (speed < 0.002) return;
-
-        int count = Mth.clamp((int)(speed * 60 * 30), 4, 20);
-
-        Vec3 motion = this.getDeltaMovement();
-        double dirX = motion.x;
-        double dirZ = motion.z;
-
-        if (dirX * dirX + dirZ * dirZ < 1.0E-6 && speed > 0.0001) {
-            dirX = dx / speed;
-            dirZ = dz / speed;
-        }
-
-        if (this.level() instanceof ServerLevel serverLevel) {
-            for (int i = 0; i < count; i++) {
-                double offsetX = (this.random.nextDouble() - 0.5) * 1.2;
-                double offsetZ = (this.random.nextDouble() - 0.5) * 1.2;
-                double px = this.getX() + offsetX;
-                double py = this.getY() + 0.05;
-                double pz = this.getZ() + offsetZ;
-                double vx = -dirX * 0.3 + (this.random.nextGaussian() * 0.01);
-                double vy = 0.02 + this.random.nextDouble() * 0.02;
-                double vz = -dirZ * 0.3 + (this.random.nextGaussian() * 0.01);
-
-                serverLevel.sendParticles(
-                        ParticleTypes.SMOKE,
-                        px, py, pz,
-                        1,
-                        vx, vy, vz,
-                        0.0
-                );
-            }
-        }
-    }
-
-    private float getNewRotation(double dx, double dz) {
-        float yawRad = (float) Math.toRadians(this.getYRot());
-        double forwardX = -Math.sin(yawRad);
-        double forwardZ = Math.cos(yawRad);
-
-        double signedDistance = dx * forwardX + dz * forwardZ;
-        final float WHEEL_RADIUS = 0.35f;
-        float deltaRotation = (float)(- signedDistance / WHEEL_RADIUS);
-
-        return this.prevWheelRotation + deltaRotation;
-    }
-
-    /* -------------------- Main tick -------------------- */
+    // ================================================================================================================
+    //    4. MAIN TICK LOOP
+    // ================================================================================================================
 
     @Override
     public void tick() {
         super.tick();
 
-        // previous wheel rotation for interpolation
         this.prevWheelRotation = this.getWheelRotation();
-
-        // treat lava as a fluid too (so applyPlayerInputOrFriction will block throttle)
         boolean inFluid = this.isInWater() || this.isInLava();
 
+        // 1. Logic Updates
         updateSpeedometer();
-        syncAndBurnFuel();
+        syncAndBurnFuel(); // Fuel only burns if moving
+        tickCooldowns();
+
+        // 2. Environmental Damage
         handleLavaCollision();
         handleFireDamage();
 
+        // 3. Movement Physics
         LivingEntity controller = this.getControllingPassenger();
-
-        // motion & movement
         Vec3 motion = this.getDeltaMovement();
         motion = applyGravityAndGround(motion);
         motion = applyPlayerInputOrFriction(controller, motion, inFluid);
 
-        // apply motion and move
         this.setDeltaMovement(motion);
         this.move(MoverType.SELF, motion);
 
+        // 4. Post-Movement Checks
         handleStepUpIfNeeded(motion);
         handleFallDamageOnLand();
 
-        // movement delta (used for particles/sound/wheel)
+        // 5. Visuals & Audio
         double dx = this.getX() - lastX;
         double dz = this.getZ() - lastZ;
         double speed = Math.sqrt(dx * dx + dz * dz);
 
-        // visuals & audio
         spawnMovementParticles();
-        tickCooldowns();
         updateSoundState(speed);
 
-        // server authoritative wheel rotation
+        // 6. Wheel Rotation (Server Authoritative)
         float newRotation = getNewRotation(dx, dz);
         this.entityData.set(WHEEL_ROTATION, newRotation);
 
-        // save last position for next tick
+        // 7. Entity Collisions
+        handleEntityCollisions(speed);
+
+        // 8. Update trackers
         lastX = this.getX();
         lastZ = this.getZ();
-
-        // collisions with entities (pushing / hurting)
-        handleEntityCollisions(speed);
     }
 
-    /* -------------------- Tick helpers -------------------- */
+    // ================================================================================================================
+    //    5. INTERACTION (Fuel & Repair)
+    // ================================================================================================================
 
-    private void handleBlockImpactBeforeMove(Vec3 motion) {
-        // Only server-side and when not on cooldown
-        if (this.level().isClientSide() || hitCooldown > 0) return;
+    @Override
+    public @NonNull InteractionResult interact(@NonNull Player player, @NonNull InteractionHand hand) {
+        ItemStack stack = player.getItemInHand(hand);
 
-        // horizontal motion only
-        Vec3 horizontal = new Vec3(motion.x, 0.0, motion.z);
-        double speed = horizontal.horizontalDistance();
-        if (speed < 1.0E-6) return;
+        // --- REPAIR (Iron Ingot) ---
+        if (stack.is(Items.IRON_INGOT)) {
+            if (this.getHealth() >= MAX_HEALTH) {
+                player.displayClientMessage(Component.literal("Terracart is already fully repaired."), true);
+                return InteractionResult.SUCCESS;
+            }
 
-        // compute damage based on horizontal speed
-        if (speed <= 0.3) {
-            return;
+            float healAmount = MAX_HEALTH * 0.25f;
+            this.setHealth(this.getHealth() + healAmount);
+            this.playRepairEffects();
+
+            if (!player.isCreative()) stack.shrink(1);
+            player.displayClientMessage(Component.literal("Terracart repaired (+25%)"), true);
+            return InteractionResult.SUCCESS;
         }
 
-        // apply damage
+        // --- REFUEL (Coal) ---
+        if (stack.is(Items.COAL)) {
+            int currentFuel = this.getFuel();
+
+            // 90% Buffer Check (Prevents waste)
+            if (currentFuel > (MAX_FUEL * 0.90)) {
+                player.displayClientMessage(Component.literal("Fuel tank is nearly full!"), true);
+                return InteractionResult.SUCCESS;
+            }
+
+            this.addFuel((int) (MAX_FUEL * 0.25));
+            this.playRefuelEffects();
+
+            if (!player.isCreative()) stack.shrink(1);
+            player.displayClientMessage(Component.literal("TerraCart refueled (+25%)"), true);
+            return InteractionResult.SUCCESS;
+        }
+
+        player.startRiding(this);
+        return InteractionResult.SUCCESS;
+    }
+
+    private void playRepairEffects() {
+        if (this.level() instanceof ServerLevel serverLevel) {
+            serverLevel.playSound(null, this.getX(), this.getY(), this.getZ(),
+                    ModSounds.TERRACART_REPAIR, SoundSource.BLOCKS, 1.0f, 1.0f + (this.random.nextFloat() - 0.5f) * 0.15f);
+            serverLevel.sendParticles(ParticleTypes.HAPPY_VILLAGER,
+                    this.getX(), this.getY() + 0.6, this.getZ(), 12, 0.25, 0.25, 0.25, 0.05);
+        }
+    }
+
+    private void playRefuelEffects() {
+        if (this.level() instanceof ServerLevel serverLevel) {
+            serverLevel.playSound(null, this.getX(), this.getY(), this.getZ(),
+                    ModSounds.TERRACART_REFUEL, SoundSource.BLOCKS, 1.0f, 1.0f);
+            serverLevel.sendParticles(ParticleTypes.CAMPFIRE_COSY_SMOKE,
+                    this.getX(), this.getY() + 0.6, this.getZ(), 6, 0.25, 0.15, 0.25, 0.1);
+        }
+    }
+
+    // ================================================================================================================
+    //    6. FUEL LOGIC
+    // ================================================================================================================
+
+    private void syncAndBurnFuel() {
+        int fuel = this.getFuel();
+        // Only burn if moving significantly (horizontal distance)
+        boolean isMoving = this.getDeltaMovement().horizontalDistanceSqr() > 0.0001;
+
+        if (fuel > 0 && isMoving) {
+            fuel--;
+        }
+        this.entityData.set(FUEL_TICKS, fuel);
+    }
+
+    public void addFuel(int amount) {
+        this.entityData.set(FUEL_TICKS, Math.min(this.getFuel() + amount, MAX_FUEL));
+    }
+
+    public boolean hasFuel() { return this.getFuel() > 0; }
+    public int getFuel() { return this.entityData.get(FUEL_TICKS); }
+    public void setFuel(int ticks) { this.entityData.set(FUEL_TICKS, ticks); }
+    public float getFuelPercent() { return (float) this.getFuel() / (float) MAX_FUEL; }
+
+    // ================================================================================================================
+    //    7. HEALTH & DAMAGE LOGIC
+    // ================================================================================================================
+
+    @Override
+    public boolean hurtServer(@NotNull ServerLevel serverLevel, @NotNull DamageSource source, float amount) {
+        if (this.isRemoved() || this.isInvulnerableToBase(source)) return false;
+
+        // Creative Instant-Kill
+        if (source.getEntity() instanceof Player player && player.isCreative()) {
+            this.playHitEffects(serverLevel);
+            this.discard();
+            return true;
+        }
+
+        this.setHealth(this.getHealth() - (amount * 0.7f));
+        this.playHitEffects(serverLevel);
+
+        if (this.getHealth() <= 0) {
+            this.destroy(serverLevel, source);
+        }
+        return true;
+    }
+
+    private void handleBlockImpactBeforeMove(Vec3 motion) {
+        if (this.level().isClientSide() || hitCooldown > 0) return;
+
+        double speed = new Vec3(motion.x, 0.0, motion.z).horizontalDistance();
+        if (speed <= 0.3) return;
+
         float damage = (float) Mth.clamp(speed * 6, 1.0f, 6.0f);
         this.setHealth(this.getHealth() - damage);
 
-        // play crash sound + particles
-        if (this.level() instanceof ServerLevel serverLevel) {
-            serverLevel.playSound(
-                    null,
-                    this.getX(), this.getY(), this.getZ(),
-                    ModSounds.TERRACART_CRASH,
-                    SoundSource.NEUTRAL,
-                    0.6F,
-                    1.0F + (this.random.nextFloat() - 0.5F) * 0.2F
-            );
-
-            serverLevel.sendParticles(
-                    ParticleTypes.SQUID_INK,
-                    this.getX(), this.getY() + 1.0, this.getZ(),
-                    6, 0.12, 0.12, 0.12, 0.08
-            );
+        if (this.level() instanceof ServerLevel sl) {
+            sl.playSound(null, this.getX(), this.getY(), this.getZ(), ModSounds.TERRACART_CRASH, SoundSource.NEUTRAL, 0.6F, 1.0F);
+            sl.sendParticles(ParticleTypes.SQUID_INK, this.getX(), this.getY() + 1.0, this.getZ(), 6, 0.12, 0.12, 0.12, 0.08);
+            if (this.getHealth() <= 0.0f) this.destroy(sl, this.damageSources().generic());
         }
+        hitCooldown = 30;
+    }
 
-        // destroy cart if health <= 0
-        if (this.getHealth() <= 0.0f && this.level() instanceof ServerLevel serverLevel) {
-            this.destroy(serverLevel, this.damageSources().generic());
+    private void handleFireDamage() {
+        if (this.level().isClientSide() || fireCooldown > 0) return;
+
+        if (isInFireBlock()) {
+            this.setHealth(this.getHealth() - 5.0f);
+            if (this.level() instanceof ServerLevel sl) {
+                this.playHitEffects(sl);
+                if (this.getHealth() <= 0) this.destroy(sl, this.damageSources().inFire());
+            }
+            fireCooldown = 15;
         }
+    }
 
-        hitCooldown = 30; // cooldown ~1 second
+    private void handleLavaCollision() {
+        if (this.level().isClientSide() || !this.isInLava() || fireCooldown > 0) return;
+
+        this.setHealth(this.getHealth() - 10.0f);
+        if (this.level() instanceof ServerLevel sl) {
+            this.playHitEffects(sl);
+            if (this.getHealth() <= 0) this.destroy(sl, this.damageSources().inFire());
+        }
+        fireCooldown = 20;
     }
 
     private boolean isInFireBlock() {
         BlockPos pos = this.blockPosition();
         BlockState state = this.level().getBlockState(pos);
-
-        // Check if it's FIRE or CAMPFIRE (add more if needed)
-        Block block = state.getBlock();
-        return block == Blocks.FIRE
-                || block == Blocks.CAMPFIRE
-                || block == Blocks.SOUL_FIRE;
+        return state.is(Blocks.FIRE) || state.is(Blocks.SOUL_FIRE) || state.is(Blocks.CAMPFIRE);
     }
 
-    private void handleFireDamage() {
-        if (this.level().isClientSide()) return; // server only
+    private void playHitEffects(ServerLevel level) {
+        level.playSound(null, this.getX(), this.getY(), this.getZ(), ModSounds.TERRACART_HIT, SoundSource.NEUTRAL, 1.0F, 1.0F + (this.random.nextFloat() - 0.5F) * 0.2F);
+        level.sendParticles(ParticleTypes.SQUID_INK, this.getX(), this.getY() + 1, this.getZ(), 5, 0.1, 0.1, 0.1, 0.1);
+    }
 
-        if (fireCooldown > 0) {
-            fireCooldown--;
-            return;
-        }
+    // ================================================================================================================
+    //    8. PHYSICS & MOVEMENT
+    // ================================================================================================================
 
-        if (isInFireBlock()) {
-            float damage = 5.0f; // adjust damage per hit
-            this.setHealth(this.getHealth() - damage);
+    private Vec3 applyPlayerInputOrFriction(LivingEntity controller, Vec3 motion, boolean inFluid) {
+        final double MAX_SPEED = 1.0;
+        final double ACCELERATION = 0.005;
+        final double FRICTION = 0.97;
 
-            if (this.level() instanceof ServerLevel serverLevel) {
-                serverLevel.playSound(
-                        null,
-                        this.getX(), this.getY(), this.getZ(),
-                        ModSounds.TERRACART_HIT,
-                        SoundSource.NEUTRAL,
-                        1.0F,
-                        1.0F
-                );
-                serverLevel.sendParticles(
-                        ParticleTypes.FLAME,
-                        this.getX(), this.getY() + 0.5, this.getZ(),
-                        10, 0.1, 0.1, 0.1, 0.1
-                );
+        if (inFluid) return handleFluidPhysics(motion);
+
+        boolean powered = hasFuel();
+        if (!powered) this.currentSpeed *= FRICTION;
+
+        if (controller instanceof Player player && powered) {
+            float forward = this.level().isClientSide() ? player.zza : this.driverForward;
+            float strafe = this.level().isClientSide() ? -player.xxa : this.driverStrafe;
+
+            // Throttle Logic
+            if (forward > 0) currentSpeed += (currentSpeed < 0 ? ACCELERATION * 3 : ACCELERATION);
+            else if (forward < 0) currentSpeed -= (currentSpeed > 0 ? ACCELERATION * 6 : ACCELERATION);
+            else currentSpeed *= FRICTION;
+
+            currentSpeed = Mth.clamp(currentSpeed, -MAX_SPEED, MAX_SPEED);
+
+            // Turning Logic
+            if (Math.abs(currentSpeed) > 0.01 && strafe != 0) {
+                float turnSpeed = 7.5F * strafe * (0.3F + 0.7F * (1.0F - Math.min((float)(Math.abs(currentSpeed) / MAX_SPEED), 1.0F)));
+                this.setYRot(this.getYRot() + turnSpeed);
             }
 
-            if (this.getHealth() <= 0.0f && this.level() instanceof ServerLevel serverLevel) {
-                this.destroy(serverLevel, this.damageSources().inFire());
+            // Sync player rotation slightly
+            if (Math.abs(Mth.wrapDegrees(this.getYRot() - this.yRotO)) > 0.0001F) {
+                player.setYRot(player.getYRot() + Mth.wrapDegrees(this.getYRot() - this.yRotO));
+                player.yRotO = player.getYRot();
             }
 
-            fireCooldown = 15;
+            // Convert Speed/Yaw to Motion Vector
+            float yawRad = (float) Math.toRadians(this.getYRot());
+            return new Vec3(-Math.sin(yawRad) * currentSpeed, motion.y, Math.cos(yawRad) * currentSpeed);
+        } else {
+            // No Driver or No Fuel
+            currentSpeed *= FRICTION;
+            return new Vec3(motion.x * 0.95, motion.y, motion.z * 0.95);
         }
     }
 
+    private Vec3 handleFluidPhysics(Vec3 motion) {
+        double glideFactor = this.isInLava() ? 0.12 : 0.06;
+        this.currentSpeed = Mth.lerp(glideFactor, this.currentSpeed, 0.0);
+        Vec3 horizontal = new Vec3(motion.x, 0.0, motion.z).scale(Math.max(0.0, 1.0 - glideFactor));
+        if (horizontal.lengthSqr() < 1.0E-6) horizontal = Vec3.ZERO;
+        return new Vec3(horizontal.x, Math.max(motion.y, -0.6) * 0.85, horizontal.z);
+    }
+
+    private Vec3 applyGravityAndGround(Vec3 motion) {
+        if (!this.onGround()) {
+            motion = motion.add(0.0, -1.0, 0.0); // Gravity
+            if (motion.y < -1.0) motion = new Vec3(motion.x, -1.0, motion.z); // Terminal Velocity
+        } else if (motion.y < 0.0) {
+            motion = new Vec3(motion.x, 0.0, motion.z);
+        }
+        return motion;
+    }
+
+    private void handleStepUpIfNeeded(Vec3 originalMotion) {
+        if (!this.horizontalCollision) return;
+
+        boolean blockedByBlock = this.level().getBlockCollisions(this, this.getBoundingBox().move(originalMotion.x, 0.0, originalMotion.z)).iterator().hasNext();
+        Vec3 stepMotion = computeStepUp(originalMotion, blockedByBlock);
+
+        if (stepMotion != null) {
+            this.setPos(this.xo, this.yo, this.zo);
+            this.move(MoverType.SELF, stepMotion);
+            if (this.onGround()) this.setDeltaMovement(this.getDeltaMovement().multiply(1.0, 0.0, 1.0));
+        } else {
+            if (blockedByBlock) {
+                handleBlockImpactBeforeMove(originalMotion);
+                currentSpeed *= 0.95;
+            } else {
+                currentSpeed *= 0.5; // Entity collision slowdown
+            }
+        }
+    }
+
+    private Vec3 computeStepUp(Vec3 motion, boolean blockedByBlock) {
+        if (!this.onGround() || motion.horizontalDistanceSqr() < 1.0E-6) return null;
+        AABB box = this.getBoundingBox();
+        for (double y = 0.2; y <= 1.0; y += 0.2) {
+            if (!this.level().noCollision(this, box.move(0, y, 0))) continue;
+            if (!this.level().noCollision(this, box.move(motion.x, y, motion.z))) continue;
+            if (!blockedByBlock) continue;
+            return new Vec3(motion.x, y, motion.z);
+        }
+        return null;
+    }
+
+    private void handleFallDamageOnLand() {
+        if (this.wasAirborne && this.onGround()) {
+            double fallDistance = this.airborneStartY - this.getY();
+            if (fallDistance > 3.5) {
+                // Speed Loss
+                double impactSeverity = (fallDistance - 3.5) * 0.15;
+                this.currentSpeed *= (1.0 - Math.min(impactSeverity, 0.9));
+
+                // Damage (Server Only)
+                if (!this.level().isClientSide()) {
+                    float damage = Mth.clamp((float)((fallDistance - 3.5) * 0.5), 1.0f, 6.0f);
+                    this.setHealth(this.getHealth() - damage);
+                    if (this.level() instanceof ServerLevel sl) {
+                        sl.playSound(null, this.getX(), this.getY(), this.getZ(), ModSounds.TERRACART_CRASH, SoundSource.NEUTRAL, 0.6F, 1.0F);
+                        sl.sendParticles(ParticleTypes.SQUID_INK, this.getX(), this.getY() + 1.0, this.getZ(), 6, 0.12, 0.12, 0.12, 0.08);
+                        if (this.getHealth() <= 0) this.destroy(sl, this.damageSources().fall());
+                    }
+                    this.hitCooldown = Math.max(this.hitCooldown, 20);
+                }
+            }
+            this.wasAirborne = false;
+        } else if (!this.onGround() && !this.wasAirborne) {
+            this.wasAirborne = true;
+            this.airborneStartY = this.getY();
+        }
+    }
+
+    // ================================================================================================================
+    //    9. COLLISIONS & DROPS
+    // ================================================================================================================
+
+    private void handleEntityCollisions(double speed) {
+        List<Entity> list = this.level().getEntities(this, this.getBoundingBox().inflate(0.2, -0.01, 0.2), EntitySelector.pushableBy(this));
+        for (Entity entity : list) {
+            if (entity.hasPassenger(this)) continue;
+            this.push(entity);
+            if (hitCooldown == 0 && speed > 0.1 && entity instanceof LivingEntity living && living != this.getControllingPassenger()) {
+                if (entity.position().subtract(this.position()).lengthSqr() <= 1.0E-6) continue;
+
+                if (!this.level().isClientSide()) {
+                    float damage = Mth.clamp((float)(speed * 6.0), 1.5F, 5.0F);
+                    //noinspection deprecation
+                    living.hurt(this.damageSources().generic(), damage);
+                    Vec3 kb = entity.position().subtract(this.position()).normalize();
+                    living.push(kb.x * (0.5 + Math.min(speed, 2.0)), 0.15, kb.z * (0.5 + Math.min(speed, 2.0)));
+                }
+                hitCooldown = 20;
+            }
+        }
+    }
+
+    @Override
+    protected void destroy(@NonNull ServerLevel level, @NonNull DamageSource source) {
+        this.kill(level);
+        if (!level.getGameRules().get(GameRules.ENTITY_DROPS)) return;
+        this.spawnAtLocation(level, new ItemStack(Items.IRON_INGOT, 3 + this.random.nextInt(5)));
+        this.spawnAtLocation(level, ModItems.TERRRACART_WHEEL);
+        this.spawnAtLocation(level, Items.FURNACE);
+    }
+
+    @Override public @NotNull ItemStack getPickResult() {
+        int color = getCartColor();
+        return (color >= 0 && color < ModItems.COLORED_TERRACARTS.length) ? new ItemStack(ModItems.COLORED_TERRACARTS[color]) : new ItemStack(ModItems.TERRACART);
+    }
+
+    @Override protected @NonNull Item getDropItem() { return Items.AIR; }
+    @Override public boolean isPickable() { return true; }
+    @Override public boolean isPushable() { return true; }
+    @Override public boolean canBeCollidedWith(@Nullable Entity entity) { return true; }
+    @Override public boolean canCollideWith(@Nullable Entity entity) {
+        assert entity != null;
+        return canVehicleCollide(this, entity); }
+
+    // ================================================================================================================
+    //    10. GETTERS / SETTERS & HELPERS
+    // ================================================================================================================
+
+    public void setDriverInput(float forward, float strafe) {
+        this.driverForward = Mth.clamp(forward, -1.0f, 1.0f);
+        this.driverStrafe = Mth.clamp(strafe, -1.0f, 1.0f);
+    }
+
+    public void setCartColor(int color) { this.entityData.set(CART_COLOR, (color < 0) ? -1 : Math.min(15, color)); }
+    public int getCartColor() { return this.entityData.get(CART_COLOR); }
+
+    public float getHealth() { return this.entityData.get(CURRENT_HEALTH); }
+    public void setHealth(float health) { this.entityData.set(CURRENT_HEALTH, Mth.clamp(health, 0.0f, MAX_HEALTH)); }
+    public float getHealthPercent() { return this.getHealth() / MAX_HEALTH; }
+
+    public float getWheelRotation() { return this.entityData.get(WHEEL_ROTATION); }
+    public float getPrevWheelRotation() { return this.prevWheelRotation; }
+    public float getSpeedBps() { return speedBps; }
+
+    // RIDING
+    @Override protected boolean canAddPassenger(@NonNull Entity passenger) { return passenger instanceof Player && this.getPassengers().isEmpty(); }
+    @Override public @Nullable LivingEntity getControllingPassenger() { return this.getFirstPassenger() instanceof LivingEntity living ? living : null; }
+    @Override public @NonNull Vec3 getPassengerRidingPosition(@NonNull Entity passenger) { return this.position().add(0.0, 0.45, 0.0); }
+    @Override public boolean canRide(@NonNull Entity entity) { return false; }
+
+    // VISUALS
     private void updateSoundState(double speed) {
-        // whether the cart produce sound
         boolean active = speed > 0.01 && this.onGround() && hasFuel();
-
-        // map speed -> target values (tweak constants to taste)
         float targetVolume = active ? Mth.clamp((float)(speed * 2.0), 0.0F, 1.0F) : 0.0F;
-        float targetPitch  = active ? 1.0F + Mth.clamp((float)(speed * 0.6), 0.0F, 1.0F) : 1.0F;
+        float targetPitch = active ? 1.0F + Mth.clamp((float)(speed * 0.6), 0.0F, 1.0F) : 1.0F;
 
-        // smooth it
         float vol = this.entityData.get(SOUND_VOLUME);
         float pit = this.entityData.get(SOUND_PITCH);
-        final float SERVER_LERP = 0.15f;
-
-        vol += (targetVolume - vol) * SERVER_LERP;
-        pit += (targetPitch - pit) * SERVER_LERP;
-
+        vol += (targetVolume - vol) * 0.15f;
+        pit += (targetPitch - pit) * 0.15f;
         if (Math.abs(vol) < 0.0005f) vol = 0.0f;
 
         this.entityData.set(SOUND_ACTIVE, active);
@@ -640,307 +546,46 @@ public class TerracartEntity extends VehicleEntity {
     }
 
     private void updateSpeedometer() {
-        Vec3 currentPos = this.position();
         if (lastPos != Vec3.ZERO) {
-            double dx = currentPos.x - lastPos.x;
-            double dz = currentPos.z - lastPos.z;
-            double distance = Math.sqrt(dx * dx + dz * dz);
-            speedBps = (float)(distance * 20.0);
+            double d = this.position().distanceTo(lastPos);
+            speedBps = (float)(d * 20.0);
         }
-        lastPos = currentPos;
-    }
-
-    private void syncAndBurnFuel() {
-        fuelTicks = entityData.get(FUEL_TICKS);
-
-        // LOGIC CHANGE: Only burn fuel if the cart is actually moving.
-        // We check if horizontal speed is significant.
-        boolean isMoving = this.getDeltaMovement().horizontalDistanceSqr() > 0.0001;
-
-        // Also burn fuel if there is a driver (idling engine), or remove "hasPassenger"
-        // if you want free idling. I recommend requiring movement:
-        if (fuelTicks > 0 && isMoving) {
-            fuelTicks--;
-        }
-
-        entityData.set(FUEL_TICKS, fuelTicks);
-    }
-
-    private void handleLavaCollision() {
-        if (this.level().isClientSide()) return;
-        if (!this.isInLava()) return;
-
-        // damage pacing (reuse fireCooldown)
-        if (fireCooldown > 0) {
-            fireCooldown--;
-            return;
-        }
-
-        if (this.level() instanceof ServerLevel serverLevel) {
-            float damage = 10.0f;
-            this.setHealth(this.getHealth() - damage);
-
-            serverLevel.playSound(
-                    null,
-                    this.getX(), this.getY(), this.getZ(),
-                    ModSounds.TERRACART_HIT,
-                    SoundSource.NEUTRAL,
-                    1.0F,
-                    1.0F + this.random.nextFloat() * 0.2F
-            );
-
-            serverLevel.sendParticles(
-                    ParticleTypes.FLAME,
-                    this.getX(), this.getY() + 0.5, this.getZ(),
-                    10, 0.25, 0.25, 0.25, 0.1
-            );
-        }
-
-        if (this.getHealth() <= 0.0f && this.level() instanceof ServerLevel serverLevel) {
-            this.destroy(serverLevel, this.damageSources().inFire());
-        }
-
-        fireCooldown = 20;
-    }
-
-
-    private Vec3 applyGravityAndGround(Vec3 motion) {
-        final double GRAVITY = 1.0;
-        final double TERMINAL_Y = -1.0;
-
-        if (!this.onGround()) {
-            motion = motion.add(0.0, -GRAVITY, 0.0);
-            if (motion.y < TERMINAL_Y) motion = new Vec3(motion.x, TERMINAL_Y, motion.z);
-        } else {
-            if (motion.y < 0.0) motion = new Vec3(motion.x, 0.0, motion.z);
-        }
-        return motion;
-    }
-
-    private Vec3 applyPlayerInputOrFriction(LivingEntity controller, Vec3 motion, boolean inFluid) {
-        final double MAX_SPEED = 1.0;
-        final double MAX_BACKWARD_SPEED = 0.25;
-        final double ACCELERATION = 0.005;
-        final double FRICTION = 0.97;
-        final double AIR_DRAG = 0.95;
-        final float TURN_SPEED = 7.5F;
-
-        boolean powered = hasFuel();
-
-        // If not powered, slow normally
-        if (!powered) this.currentSpeed *= FRICTION;
-
-        if (inFluid) {
-            // Glide factor: fraction of speed removed each tick.
-            // Higher -> stops faster.
-            final double glideFactor = this.isInLava() ? 0.12 : 0.06;
-
-            // Immediately start damping the engine speed so we don't re-add throttle
-            this.currentSpeed = Mth.lerp(glideFactor, this.currentSpeed, 0.0);
-
-            // Apply linear damping to the *total horizontal motion*
-            Vec3 horizontal = new Vec3(motion.x, 0.0, motion.z);
-
-            // Reduce horizontal velocity each tick
-            horizontal = horizontal.scale(Math.max(0.0, 1.0 - glideFactor));
-
-            // small dead-zone: snap very small speeds to zero to avoid forever tiny drift
-            if (horizontal.lengthSqr() < 1.0E-6) horizontal = Vec3.ZERO;
-
-            // damp vertical less, keep some upward motion if present but cap falling speed a bit
-            double newY = motion.y;
-            // cap downward velocity in fluid to avoid excessive fall-through
-            if (newY < -0.6) newY = -0.6;
-
-            // Compose new motion — NOTE: DO NOT add engine motion here (throttle is blocked in fluid)
-            motion = new Vec3(horizontal.x, newY * 0.85, horizontal.z);
-
-            return motion;
-        }
-
-        // Normal on-ground player control (server authoritative)
-        if (controller instanceof Player player && powered) {
-            float forward;
-            float strafe;
-
-            if (this.level().isClientSide()) {
-                forward = player.zza;
-                strafe  = -player.xxa;
-            } else {
-                forward = this.driverForward;
-                strafe  = this.driverStrafe;
-            }
-
-            if (forward > 0) {
-                if (currentSpeed < 0) currentSpeed += ACCELERATION * 3;
-                else currentSpeed += ACCELERATION;
-            } else if (forward < 0) {
-                if (currentSpeed > 0) currentSpeed -= ACCELERATION * 6;
-                else currentSpeed -= ACCELERATION;
-                currentSpeed = Math.max(currentSpeed, -MAX_BACKWARD_SPEED);
-            } else {
-                currentSpeed *= FRICTION;
-            }
-            currentSpeed = Mth.clamp(currentSpeed, -MAX_SPEED, MAX_SPEED);
-
-            if (Math.abs(currentSpeed) > 0.01 && strafe != 0) {
-                float speedFactor = 1.0F - Math.min((float)(Math.abs(currentSpeed) / MAX_SPEED), 1.0F);
-                float turn = TURN_SPEED * strafe * (0.3F + 0.7F * speedFactor);
-                this.setYRot(this.getYRot() + turn);
-            }
-
-            if (controller instanceof Player) {
-                float deltaYaw = Mth.wrapDegrees(this.getYRot() - this.yRotO);
-                if (Math.abs(deltaYaw) > 0.0001F) {
-                    player.setYRot(player.getYRot() + deltaYaw);
-                    player.yRotO = player.getYRot();
-                }
-            }
-
-            float yawRad = (float) Math.toRadians(this.getYRot());
-            motion = new Vec3(
-                    -Math.sin(yawRad) * currentSpeed,
-                    motion.y,
-                    Math.cos(yawRad) * currentSpeed
-            );
-        } else {
-            // Default (air/friction)
-            currentSpeed *= FRICTION;
-            motion = new Vec3(motion.x * AIR_DRAG, motion.y, motion.z * AIR_DRAG);
-        }
-
-        return motion;
-    }
-
-    private void handleStepUpIfNeeded(Vec3 originalMotion) {
-        // Detect whether a forward horizontal move is blocked by block collisions
-        boolean blockedByBlock = this.horizontalCollision && this.level()
-                .getBlockCollisions(this, this.getBoundingBox().move(originalMotion.x, 0.0, originalMotion.z))
-                .iterator()
-                .hasNext();
-
-        if (this.horizontalCollision) {
-            Vec3 stepMotion = computeStepUp(originalMotion, blockedByBlock);
-            if (stepMotion != null) {
-                // perform the small-step motion and clear any small vertical penetration
-                this.setPos(this.xo, this.yo, this.zo);
-                this.move(MoverType.SELF, stepMotion);
-                if (this.onGround() && this.verticalCollision) {
-                    this.setDeltaMovement(this.getDeltaMovement().multiply(1.0, 0.0, 1.0));
-                }
-            } else {
-                // If the collision is caused by a BLOCK -> run the block impact (damage & particles).
-                // If the collision is caused by an ENTITY -> do only a small slowdown, no block-impact damage.
-                if (blockedByBlock) {
-                    handleBlockImpactBeforeMove(originalMotion);
-                    currentSpeed *= 0.95;
-                } else {
-                    // Collision caused by entity (or some non-block obstruction) — don't treat it as a wall crash.
-                    // Apply a light slowdown so cart doesn't instantly tunnel, but avoid damage/bounce.
-                    currentSpeed *= 0.5;
-                }
-            }
-        }
+        lastPos = this.position();
     }
 
     private void tickCooldowns() {
         if (MovingSoundCooldown > 0) MovingSoundCooldown--;
         if (hitCooldown > 0) hitCooldown--;
+        if (fireCooldown > 0) fireCooldown--;
     }
 
-    private void handleEntityCollisions(double speed) {
-        List<Entity> list = this.level().getEntities(
-                this,
-                this.getBoundingBox().inflate(0.2, -0.01, 0.2),
-                EntitySelector.pushableBy(this)
-        );
+    private void spawnMovementParticles() {
+        if (!this.onGround() || !(this.level() instanceof ServerLevel sl)) return;
+        double dx = this.getX() - lastX;
+        double dz = this.getZ() - lastZ;
+        double speed = Math.sqrt(dx * dx + dz * dz);
+        if (speed < 0.002) return;
 
-        for (Entity entity : list) {
-            if (entity.hasPassenger(this)) continue;
+        int count = Mth.clamp((int)(speed * 60 * 30), 4, 20);
+        double dirX = (speed > 0.0001) ? dx / speed : this.getDeltaMovement().x;
+        double dirZ = (speed > 0.0001) ? dz / speed : this.getDeltaMovement().z;
 
-            // Always apply cartilage push (so cart and mobs don't phase), but guard tiny separation
-            this.push(entity);
-
-            // damage + knockback only when cooldown elapsed AND moving sufficiently AND entity is a LivingEntity
-            if (hitCooldown == 0 && speed > 0.1 &&
-                    entity instanceof LivingEntity living && living != this.getControllingPassenger()) {
-
-                // compute separation and discard if too small to get a stable direction
-                Vec3 sep = entity.position().subtract(this.position());
-                double sepSq = sep.lengthSqr();
-                if (sepSq <= 1.0E-6) {
-                    // overlapping placement: skip damage/knockback this tick to avoid crazy impulses
-                    continue;
-                }
-
-                float damage = Mth.clamp((float)(speed * 6.0), 1.5F, 5.0F);
-
-                // Use server-side hurt to keep behavior consistent
-                if (!this.level().isClientSide()) {
-                    //noinspection deprecation
-                    living.hurt(this.damageSources().generic(), damage);
-
-                    // knockback direction from cart -> entity, normalized and scaled
-                    Vec3 knockbackDir = sep.normalize();
-                    double kbStrength = 0.5 + Math.min(speed, 2.0); // cap added so huge speeds don't produce wild KB
-                    living.push(knockbackDir.x * kbStrength, 0.15, knockbackDir.z * kbStrength);
-                }
-
-                hitCooldown = 20;
-            }
+        for (int i = 0; i < count; i++) {
+            sl.sendParticles(ParticleTypes.SMOKE,
+                    this.getX() + (this.random.nextDouble() - 0.5) * 1.2,
+                    this.getY() + 0.05,
+                    this.getZ() + (this.random.nextDouble() - 0.5) * 1.2,
+                    1, -dirX * 0.3, 0.03, -dirZ * 0.3, 0.0);
         }
     }
 
-    private void handleFallDamageOnLand() {
-        // Run on both Client and Server
-        if (this.wasAirborne && this.onGround()) {
-            double fallDistance = this.airborneStartY - this.getY();
-
-            if (fallDistance > 3.5) {
-                // --- UPDATED LOGIC START ---
-                // 15% speed loss per block past 3.5
-                double impactSeverity = (fallDistance - 3.5) * 0.15;
-
-                // Cap the loss at 90% (0.9).
-                // This ensures speedRetention is at least 0.1 (10%)
-                double cappedImpact = Math.min(impactSeverity, 0.9);
-                double speedRetention = 1.0 - cappedImpact;
-
-                this.currentSpeed *= speedRetention;
-                // --- UPDATED LOGIC END ---
-
-                // SERVER ONLY: Damage and effects
-                if (!this.level().isClientSide()) {
-                    float damage = (float)((fallDistance - 3.5) * 0.5);
-                    damage = Mth.clamp(damage, 1.0f, 6.0f);
-
-                    float newHealth = this.getHealth() - damage;
-                    this.setHealth(newHealth);
-
-                    if (this.level() instanceof ServerLevel serverLevel) {
-                        serverLevel.playSound(
-                                null, this.getX(), this.getY(), this.getZ(),
-                                ModSounds.TERRACART_CRASH, SoundSource.NEUTRAL, 0.6F, 1.0F
-                        );
-
-                        serverLevel.sendParticles(
-                                ParticleTypes.SQUID_INK,
-                                this.getX(), this.getY() + 1.0, this.getZ(),
-                                6, 0.12, 0.12, 0.12, 0.08);
-
-                        if (newHealth <= 0.0f) {
-                            this.destroy(serverLevel, this.damageSources().fall());
-                        }
-                    }
-                    this.hitCooldown = Math.max(this.hitCooldown, 20);
-                }
-            }
-            this.wasAirborne = false;
-        }
-
-        if (!this.onGround() && !this.wasAirborne) {
-            this.wasAirborne = true;
-            this.airborneStartY = this.getY();
-        }
+    private float getNewRotation(double dx, double dz) {
+        float yawRad = (float) Math.toRadians(this.getYRot());
+        double signedDistance = dx * (-Math.sin(yawRad)) + dz * Math.cos(yawRad);
+        return this.prevWheelRotation + (float)(-signedDistance / 0.35f);
     }
+
+    @Override public @NonNull EntityDimensions getDimensions(@NonNull Pose pose) { return EntityDimensions.fixed(2.0F, 1.0F); }
+    @Override protected void playStepSound(@NonNull BlockPos pos, @NonNull BlockState state) { /* suppressed */ }
+    @Override protected void checkFallDamage(double y, boolean onGround, @NonNull BlockState state, @NonNull BlockPos pos) { /* suppressed */ }
 }
