@@ -41,7 +41,7 @@ public class TerracartEntity extends VehicleEntity {
     public TerracartEntity(EntityType<? extends TerracartEntity> type, Level level) {
         super(type, level);
 
-        // initialize last position trackers so first tick delta is sane
+        // initialize last position
         this.lastX = this.getX();
         this.lastZ = this.getZ();
 
@@ -73,22 +73,16 @@ public class TerracartEntity extends VehicleEntity {
 
     private static final EntityDataAccessor<Integer> CART_COLOR =
             SynchedEntityData.defineId(TerracartEntity.class, EntityDataSerializers.INT);
-
     private static final EntityDataAccessor<Integer> FUEL_TICKS =
             SynchedEntityData.defineId(TerracartEntity.class, EntityDataSerializers.INT);
-
     private static final EntityDataAccessor<Float> WHEEL_ROTATION =
             SynchedEntityData.defineId(TerracartEntity.class, EntityDataSerializers.FLOAT);
-
     public static final EntityDataAccessor<Boolean> SOUND_ACTIVE =
             SynchedEntityData.defineId(TerracartEntity.class, EntityDataSerializers.BOOLEAN);
-
     public static final EntityDataAccessor<Float> SOUND_VOLUME =
             SynchedEntityData.defineId(TerracartEntity.class, EntityDataSerializers.FLOAT);
-
     public static final EntityDataAccessor<Float> SOUND_PITCH =
             SynchedEntityData.defineId(TerracartEntity.class, EntityDataSerializers.FLOAT);
-
     private static final EntityDataAccessor<Float> CURRENT_HEALTH =
             SynchedEntityData.defineId(TerracartEntity.class, EntityDataSerializers.FLOAT);
 
@@ -112,7 +106,6 @@ public class TerracartEntity extends VehicleEntity {
         this.driverForward = Mth.clamp(forward, -1.0f, 1.0f);
         this.driverStrafe  = Mth.clamp(strafe, -1.0f, 1.0f);
     }
-
     // Colored Carts
     public void setCartColor(int color) {
         if (color < 0) this.entityData.set(CART_COLOR, -1);
@@ -121,7 +114,6 @@ public class TerracartEntity extends VehicleEntity {
     public int getCartColor() {
         return this.entityData.get(CART_COLOR);
     }
-
     // animation and speed
     private double currentSpeed = 0.0 ;
     private float prevWheelRotation = 0.0f;
@@ -131,21 +123,17 @@ public class TerracartEntity extends VehicleEntity {
     public float getPrevWheelRotation() {
         return this.prevWheelRotation;
     }
-
     // speedometer
     private Vec3 lastPos = Vec3.ZERO;
     private float speedBps = 0.0F;
     public float getSpeedBps() { return speedBps; }
-
     // particles and sound
     private int MovingSoundCooldown = 0;
     private double lastX;
     private double lastZ;
-
     // damage cooldown
     private int hitCooldown = 0;
     private int fireCooldown = 0;
-
     // Health
     private boolean wasAirborne = false;
     private double airborneStartY = 0.0;
@@ -295,7 +283,7 @@ public class TerracartEntity extends VehicleEntity {
         ItemStack stack = player.getItemInHand(hand);
 
         // =============================================================
-        //  REPAIR LOGIC (Iron Ingot)
+        //  REPAIR
         // =============================================================
         if (stack.is(Items.IRON_INGOT)) {
             // 1. Check if fully repaired
@@ -323,7 +311,7 @@ public class TerracartEntity extends VehicleEntity {
         }
 
         // =============================================================
-        //  REFUEL LOGIC (Coal)
+        //  REFUEL
         // =============================================================
         if (stack.is(Items.COAL)) {
             int currentFuel = this.entityData.get(FUEL_TICKS);
@@ -353,7 +341,7 @@ public class TerracartEntity extends VehicleEntity {
         }
 
         // =============================================================
-        //  RIDING LOGIC
+        //  RIDING
         // =============================================================
         player.startRiding(this);
         return InteractionResult.SUCCESS;
@@ -744,16 +732,16 @@ public class TerracartEntity extends VehicleEntity {
 
         if (inFluid) {
             // Glide factor: fraction of speed removed each tick.
-            // Higher -> stops faster. Suggested: water=0.06, lava=0.12
+            // Higher -> stops faster.
             final double glideFactor = this.isInLava() ? 0.12 : 0.06;
 
             // Immediately start damping the engine speed so we don't re-add throttle
             this.currentSpeed = Mth.lerp(glideFactor, this.currentSpeed, 0.0);
 
-            // Apply linear damping to the *total horizontal motion* (this damps pushes, previous velocity, etc.)
+            // Apply linear damping to the *total horizontal motion*
             Vec3 horizontal = new Vec3(motion.x, 0.0, motion.z);
 
-            // Reduce horizontal velocity by (1 - glideFactor) each tick (linear glide)
+            // Reduce horizontal velocity each tick
             horizontal = horizontal.scale(Math.max(0.0, 1.0 - glideFactor));
 
             // small dead-zone: snap very small speeds to zero to avoid forever tiny drift
@@ -761,7 +749,7 @@ public class TerracartEntity extends VehicleEntity {
 
             // damp vertical less, keep some upward motion if present but cap falling speed a bit
             double newY = motion.y;
-            // optional: cap downward velocity in fluid to avoid excessive fall-through
+            // cap downward velocity in fluid to avoid excessive fall-through
             if (newY < -0.6) newY = -0.6;
 
             // Compose new motion — NOTE: DO NOT add engine motion here (throttle is blocked in fluid)
@@ -932,10 +920,7 @@ public class TerracartEntity extends VehicleEntity {
                     if (this.level() instanceof ServerLevel serverLevel) {
                         serverLevel.playSound(
                                 null, this.getX(), this.getY(), this.getZ(),
-                                ModSounds.TERRACART_CRASH,
-                                SoundSource.NEUTRAL,
-                                0.6F,
-                                1.0F
+                                ModSounds.TERRACART_CRASH, SoundSource.NEUTRAL, 0.6F, 1.0F
                         );
 
                         serverLevel.sendParticles(

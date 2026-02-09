@@ -10,7 +10,8 @@
 	"custom": {
 		"modmenu": {
 			"links": {
-				"Support-Me": "https://ko-fi.com/ilyrac"
+				"Support-Me": "https://ko-fi.com/ilyrac",
+				"license": ""
 			}
 		}
 	},
