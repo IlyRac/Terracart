@@ -21,7 +21,7 @@ public class TerracartItem extends Item {
     public @NonNull InteractionResult useOn(UseOnContext context) {
         Level level = context.getLevel();
 
-        // 🚫 client never spawns entities
+        // client never spawns entities
         if (level.isClientSide()) {
             return InteractionResult.SUCCESS;
         }

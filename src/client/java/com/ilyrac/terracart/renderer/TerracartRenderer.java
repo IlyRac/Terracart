@@ -58,13 +58,12 @@ public class TerracartRenderer extends EntityRenderer<TerracartEntity, Terracart
     ) {
         super.extractRenderState(entity, state, partialTick);
         state.yaw = Mth.lerp(partialTick, entity.yRotO, entity.getYRot());
-//        state.texture = TEXTURE;
 
-        int color = entity.getCartColor(); // -1 .. 15
+        int color = entity.getCartColor();
         if (color >= 0 && color < TEXTURES.length) {
             state.texture = TEXTURES[color];
         } else {
-            state.texture = TEXTURE; // fallback default uncolored texture
+            state.texture = TEXTURE; // fallback default
         }
 
         float wheelPrev = entity.getPrevWheelRotation();
