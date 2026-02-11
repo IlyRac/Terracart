@@ -56,6 +56,7 @@ public class TerracartClient implements ClientModInitializer {
 			Minecraft mc = Minecraft.getInstance();
 			if (mc.player == null) return;
 			if (mc.options.hideGui) return;
+			if (mc.getDebugOverlay().showDebugScreen()) return;
 
 			if (mc.player.getVehicle() instanceof TerracartEntity cart) {
 				float fuelPercent = cart.getFuelPercent();
