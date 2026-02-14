@@ -490,8 +490,8 @@ public class TerracartEntity extends VehicleEntity {
                 dx *= inverseDist;
                 dz *= inverseDist;
 
-                dx *= 0.0025;
-                dz *= 0.0025;
+                dx *= 0.001;
+                dz *= 0.001;
 
                 // Apply reduced force to the cart
                 this.push(-dx, 0.0, -dz);
