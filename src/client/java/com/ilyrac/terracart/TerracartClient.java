@@ -55,6 +55,7 @@ public class TerracartClient implements ClientModInitializer {
 		HudRenderCallback.EVENT.register((gui, tickDelta) -> {
 			Minecraft mc = Minecraft.getInstance();
 			if (mc.player == null || mc.options.hideGui) return;
+			//if (mc.getDebugOverlay().showDebugScreen()) return;
 
 			if (mc.player.getVehicle() instanceof TerracartEntity cart) {
 				Font font = mc.font;
