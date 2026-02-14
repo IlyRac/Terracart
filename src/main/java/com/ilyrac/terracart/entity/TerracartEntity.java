@@ -264,13 +264,6 @@ public class TerracartEntity extends VehicleEntity {
     public boolean hurtServer(@NotNull ServerLevel serverLevel, @NotNull DamageSource source, float amount) {
         if (this.isRemoved() || this.isInvulnerableToBase(source)) return false;
 
-        // Creative Instant-Kill
-        if (source.getEntity() instanceof Player player && player.isCreative()) {
-            this.playHitEffects(serverLevel);
-            this.discard();
-            return true;
-        }
-
         this.setHealth(this.getHealth() - (amount * 0.7f));
         this.playHitEffects(serverLevel);
 
@@ -476,6 +469,35 @@ public class TerracartEntity extends VehicleEntity {
                     living.push(kb.x * (0.5 + Math.min(speed, 2.0)), 0.15, kb.z * (0.5 + Math.min(speed, 2.0)));
                 }
                 hitCooldown = 20;
+            }
+        }
+    }
+
+    @Override
+    public void push(@NonNull Entity entity) {
+        if (!this.level().isClientSide() && !this.isRemoved()) {
+            double dx = entity.getX() - this.getX();
+            double dz = entity.getZ() - this.getZ();
+            double distance = Mth.absMax(dx, dz);
+
+            if (distance >= 0.01) {
+                distance = Math.sqrt(distance);
+                dx /= distance;
+                dz /= distance;
+                double inverseDist = 1.0 / distance;
+                if (inverseDist > 1.0) inverseDist = 1.0;
+
+                dx *= inverseDist;
+                dz *= inverseDist;
+
+                dx *= 0.0025;
+                dz *= 0.0025;
+
+                // Apply reduced force to the cart
+                this.push(-dx, 0.0, -dz);
+
+                // Apply force to the thing hitting the cart (makes it feel solid)
+                entity.push(dx, 0.0, dz);
             }
         }
     }
