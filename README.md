@@ -9,7 +9,7 @@
   <a href="https://modrinth.com/user/ilyrac" target="_blank" rel="noopener">
     <img src="https://i.imgur.com/7fioiRx.png" alt="Modrinth" style="margin:0 5px; max-width:120px;">
   </a>
-  <a href="https://github.com/IlyRac/FarBlockEntityRendering" target="_blank" rel="noopener">
+  <a href="https://github.com/IlyRac/Terracart" target="_blank" rel="noopener">
     <img src="https://i.imgur.com/EYNx6oL.png" alt="GitHub" style="margin:0 5px; max-width:120px;">
   </a>
 </p>
