@@ -1,4 +1,3 @@
-<!-- Centered Ko-fi banner + platform buttons -->
 <p align="center">
   <a href="https://ko-fi.com/ilyrac" target="_blank" rel="noopener">
     <img src="https://cdn.modrinth.com/data/cached_images/f69e87c0cfd3306fa11c3da477e51544c8d380e2_0.webp" alt="Support Me" style="margin-bottom:10px; max-width:100%;">
