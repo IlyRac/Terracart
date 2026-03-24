@@ -173,13 +173,16 @@ public class TerracartEntity extends VehicleEntity {
     // ================================================================================================================
 
     @Override
-    public @NonNull InteractionResult interact(@NonNull Player player, @NonNull InteractionHand hand) {
+    public @NonNull InteractionResult interact(@NonNull Player player,
+                                               @NonNull InteractionHand hand,
+                                               @NonNull Vec3 location) {
+
         ItemStack stack = player.getItemInHand(hand);
 
         // --- REPAIR (Iron Ingot) ---
         if (stack.is(Items.IRON_INGOT)) {
             if (this.getHealth() >= MAX_HEALTH) {
-                player.displayClientMessage(Component.literal("Terracart is already fully repaired."), true);
+                player.sendOverlayMessage(Component.literal("Terracart is already fully repaired."));
                 return InteractionResult.SUCCESS;
             }
 
@@ -188,17 +191,14 @@ public class TerracartEntity extends VehicleEntity {
             this.playRepairEffects();
 
             if (!player.isCreative()) stack.shrink(1);
-            player.displayClientMessage(Component.literal("Terracart repaired (+25%)"), true);
+            player.sendOverlayMessage(Component.literal("Terracart repaired (+25%)"));
             return InteractionResult.SUCCESS;
         }
 
         // --- REFUEL (Coal) ---
         if (stack.is(Items.COAL)) {
-            int currentFuel = this.getFuel();
-
-            // 90% Buffer Check (Prevents waste)
-            if (currentFuel > (MAX_FUEL * 0.90)) {
-                player.displayClientMessage(Component.literal("Fuel tank is nearly full!"), true);
+            if (this.getFuel() > (MAX_FUEL * 0.90)) {
+                player.sendOverlayMessage(Component.literal("Fuel tank is nearly full!"));
                 return InteractionResult.SUCCESS;
             }
 
@@ -206,12 +206,19 @@ public class TerracartEntity extends VehicleEntity {
             this.playRefuelEffects();
 
             if (!player.isCreative()) stack.shrink(1);
-            player.displayClientMessage(Component.literal("TerraCart refueled (+25%)"), true);
+            player.sendOverlayMessage(Component.literal("TerraCart refueled (+25%)"));
             return InteractionResult.SUCCESS;
         }
 
-        player.startRiding(this);
-        return InteractionResult.SUCCESS;
+        // --- MOUNT ---
+        if (this.canAddPassenger(player) && this.getPassengers().isEmpty()) {
+            if (!this.level().isClientSide()) {
+                player.startRiding(this);
+            }
+            return InteractionResult.SUCCESS;
+        }
+
+        return InteractionResult.PASS;
     }
 
     private void playRepairEffects() {

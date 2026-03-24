@@ -3,15 +3,15 @@
 	"id": "terracart",
 	"version": "${version}",
 	"name": "Terracart",
-	"description": "",
+	"description": "Vanilla-friendly drivable cart, smooth movement, colors, fuel & repairs, HUD, sounds & particles.",
 	"authors": [
 		"IlyRac"
 	],
 	"custom": {
 		"modmenu": {
 			"links": {
-				"Support-Me": "https://ko-fi.com/ilyrac",
-				"License": "https://github.com/IlyRac/Terracart/blob/main/LICENSE.md"
+				"Enjoying the mod? Support me!": "https://ko-fi.com/ilyrac",
+				"License": "https://github.com/IlyRac/PebblesAndTwigs/blob/main/LICENSE.md"
 			}
 		}
 	},
@@ -34,9 +34,9 @@
 		}
 	],
 	"depends": {
-		"fabricloader": ">=0.17.3",
-		"minecraft": "~1.21.11",
-		"java": ">=21",
+		"fabricloader": ">=0.18.4",
+		"minecraft": "~26.1",
+		"java": ">=25",
 		"fabric-api": "*"
 	}
 }
