@@ -9,11 +9,14 @@ import com.ilyrac.terracart.sound.TerracartSoundController;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
-import net.fabricmc.fabric.api.client.rendering.v1.EntityModelLayerRegistry;
+import net.fabricmc.fabric.api.client.rendering.v1.ModelLayerRegistry;
 import net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry;
-import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
+import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElement;
+import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
+import net.fabricmc.fabric.api.client.rendering.v1.hud.VanillaHudElements;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
+import net.minecraft.resources.Identifier;
 
 public class TerracartClient implements ClientModInitializer {
 
@@ -37,7 +40,7 @@ public class TerracartClient implements ClientModInitializer {
 				TerracartRenderer::new
 		);
 
-		EntityModelLayerRegistry.registerModelLayer(
+		ModelLayerRegistry.registerModelLayer(
 				TerracartModel.LAYER,
 				TerracartModel::createBodyLayer
 		);
@@ -51,47 +54,49 @@ public class TerracartClient implements ClientModInitializer {
 			});
 		});
 
-        //noinspection deprecation
-		HudRenderCallback.EVENT.register((gui, tickDelta) -> {
+		HudElement terracartHud = (context, _) -> {
 			Minecraft mc = Minecraft.getInstance();
-			if (mc.player == null || mc.options.hideGui) return;
-			//if (mc.getDebugOverlay().showDebugScreen()) return;
+			if (mc.player == null || !(mc.player.getVehicle() instanceof TerracartEntity cart)) return;
 
-			if (mc.player.getVehicle() instanceof TerracartEntity cart) {
-				Font font = mc.font;
-				int screenW = mc.getWindow().getGuiScaledWidth();
-				int screenH = mc.getWindow().getGuiScaledHeight();
+			Font font = mc.font;
+			// Note: In your class, these are context.guiWidth() and context.guiHeight()
+			int screenW = context.guiWidth();
+			int screenH = context.guiHeight();
 
-				// 1. DIMENSIONS & ANCHORS
-				int boxWidth = 95;  // Slightly wider to fit the columns
-				int boxHeight = 45;
+			int boxWidth = 95;
+			int boxHeight = 45;
+			int xLeft = screenW - boxWidth;
+			int yCenter = screenH / 2;
+			int yTop = yCenter - (boxHeight / 2);
 
-				int xLeft = screenW - boxWidth;
-				int yCenter = screenH / 2;
-				int yTop = yCenter - (boxHeight / 2);
+			// 1. Draw Background
+			context.fill(xLeft, yTop, screenW, yTop + boxHeight, 0x40000000);
 
-				// 2. DRAW BACKGROUND (Ultra-transparent 0x40 alpha)
-				gui.fill(xLeft, yTop, screenW, yTop + boxHeight, 0x40000000);
+			int labelX = xLeft + 5;
+			int valueX = screenW - 5;
 
-				// 3. DRAW DATA (Aligned in two columns)
-				int labelX = xLeft + 5;      // Labels start 5px from left of box
-				int valueX = screenW - 5;     // Values end 5px from right of box
+			// Row 1: Speed (Using context.text instead of drawString)
+			String speedVal = String.format("%.1f", cart.getSpeedBps()) + " b/s";
+			context.text(font, "Speed:", labelX, yCenter - 15, 0xFFAAAAAA);
+			context.text(font, speedVal, valueX - font.width(speedVal), yCenter - 15, 0xFFFFFFFF);
 
-				// Row 1: Speed
-				String speedVal = String.format("%.1f", cart.getSpeedBps());
-				gui.drawString(font, "Speed:", labelX, yCenter - 15, 0xFFAAAAAA, true); // Gray label
-				gui.drawString(font, speedVal + " b/s", valueX - font.width(speedVal + " b/s"), yCenter - 15, 0xFFFFFFFF, true);
+			// Row 2: Fuel
+			String fuelVal = Math.round(cart.getFuelPercent() * 100.0f) + "%";
+			context.text(font, "Fuel:", labelX, yCenter - 3, 0xFFAAAAAA);
+			context.text(font, fuelVal, valueX - font.width(fuelVal), yCenter - 3, 0xFFFFFFFF);
 
-				// Row 2: Fuel
-				String fuelVal = Math.round(cart.getFuelPercent() * 100.0f) + "%";
-				gui.drawString(font, "Fuel:", labelX, yCenter - 3, 0xFFAAAAAA, true);
-				gui.drawString(font, fuelVal, valueX - font.width(fuelVal), yCenter - 3, 0xFFFFFFFF, true);
+			// Row 3: Health
+			String healthVal = Math.round(cart.getHealthPercent() * 100.0f) + "%";
+			context.text(font, "Condition:", labelX, yCenter + 9, 0xFFAAAAAA);
+			context.text(font, healthVal, valueX - font.width(healthVal), yCenter + 9, 0xFFFFFFFF);
+		};
 
-				// Row 3: Health
-				String healthVal = Math.round(cart.getHealthPercent() * 100.0f) + "%";
-				gui.drawString(font, "Condition:", labelX, yCenter + 9, 0xFFAAAAAA, true);
-				gui.drawString(font, healthVal, valueX - font.width(healthVal), yCenter + 9, 0xFFFFFFFF, true);
-			}
-		});
+		// Register the element.
+		// We attach it AFTER the Boss Bar so it renders in the main HUD layer.
+		HudElementRegistry.attachElementAfter(
+				VanillaHudElements.BOSS_BAR,
+				Identifier.fromNamespaceAndPath("terracart", "stats_display"),
+				terracartHud
+		);
 	}
 }

@@ -1,7 +1,7 @@
 package com.ilyrac.terracart.item;
 
 import com.ilyrac.terracart.Terracart;
-import net.fabricmc.fabric.api.itemgroup.v1.ItemGroupEvents;
+import net.fabricmc.fabric.api.creativetab.v1.CreativeModeTabEvents;
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
@@ -33,17 +33,17 @@ public class ModItems {
     public static final Item[] COLORED_TERRACARTS = new Item[16];
 
     public static void initialize() {
-        ItemGroupEvents.modifyEntriesEvent(CreativeModeTabs.TOOLS_AND_UTILITIES).register(
+        CreativeModeTabEvents.modifyOutputEvent(CreativeModeTabs.TOOLS_AND_UTILITIES).register(
         entries -> {
-            entries.addAfter(Items.TNT_MINECART, TERRACART);
+            entries.insertAfter(Items.TNT_MINECART, TERRACART);
 
             for (Item it : COLORED_TERRACARTS) {
-                entries.addAfter(TERRACART, it);
+                entries.insertAfter(TERRACART, it);
             }
         });
 
-        ItemGroupEvents.modifyEntriesEvent(CreativeModeTabs.INGREDIENTS).register(
-            entries -> entries.addAfter(Items.PHANTOM_MEMBRANE, TERRRACART_WHEEL)
+        CreativeModeTabEvents.modifyOutputEvent(CreativeModeTabs.INGREDIENTS).register(
+            entries -> entries.insertAfter(Items.PHANTOM_MEMBRANE, TERRRACART_WHEEL)
         );
     }
 

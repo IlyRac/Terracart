@@ -32,7 +32,7 @@ public record TerracartInputPayload(float forward, float strafe) implements Cust
     }
 
     public static void initialize() {
-        PayloadTypeRegistry.playC2S().register(
+        PayloadTypeRegistry.serverboundPlay().register(
                 TerracartInputPayload.TYPE,
                 TerracartInputPayload.STREAM_CODEC
         );
