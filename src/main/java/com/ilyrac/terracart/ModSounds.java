@@ -1,9 +1,9 @@
 package com.ilyrac.terracart;
 
+import net.minecraft.core.Registry;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.Identifier;
 import net.minecraft.sounds.SoundEvent;
-import net.minecraft.core.Registry;
 
 public class ModSounds {
 

@@ -2,11 +2,11 @@ package com.ilyrac.terracart.item;
 
 import com.ilyrac.terracart.entity.ModEntities;
 import com.ilyrac.terracart.entity.TerracartEntity;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.Mth;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.context.UseOnContext;
-import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
 import org.jspecify.annotations.NonNull;

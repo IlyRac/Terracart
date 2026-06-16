@@ -1,9 +1,9 @@
-package com.ilyrac.terracart.renderer;
+package com.ilyrac.terracart.client.renderer;
 
 import com.ilyrac.terracart.Terracart;
 import com.ilyrac.terracart.entity.TerracartEntity;
-import com.ilyrac.terracart.model.TerracartModel;
-import com.ilyrac.terracart.renderer.state.TerracartRenderState;
+import com.ilyrac.terracart.client.model.TerracartModel;
+import com.ilyrac.terracart.client.renderer.state.TerracartRenderState;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.math.Axis;
 import net.minecraft.client.renderer.SubmitNodeCollector;
@@ -46,14 +46,14 @@ public class TerracartRenderer extends EntityRenderer<TerracartEntity, Terracart
     );
 
     @Override
-    public TerracartRenderState createRenderState() {
+    public @NonNull TerracartRenderState createRenderState() {
         return new TerracartRenderState();
     }
 
     @Override
     public void extractRenderState(
-            TerracartEntity entity,
-            TerracartRenderState state,
+            @NonNull TerracartEntity entity,
+            @NonNull TerracartRenderState state,
             float partialTick
     ) {
         super.extractRenderState(entity, state, partialTick);

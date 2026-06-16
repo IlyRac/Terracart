@@ -1,9 +1,12 @@
 {
 	"required": true,
-	"package": "com.ilyrac.terracart.mixin.client",
-	"compatibilityLevel": "JAVA_21",
+	"package": "com.ilyrac.terracart.client.mixin",
+	"compatibilityLevel": "JAVA_25",
 	"client": [],
 	"injectors": {
 		"defaultRequire": 1
+	},
+	"overwrites": {
+		"requireAnnotations": true
 	}
 }
