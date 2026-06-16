@@ -1,6 +1,7 @@
-package com.ilyrac.terracart.model;
+package com.ilyrac.terracart.client.model;
 
-import com.ilyrac.terracart.renderer.state.TerracartRenderState;
+import com.ilyrac.terracart.Terracart;
+import com.ilyrac.terracart.client.renderer.state.TerracartRenderState;
 import net.minecraft.client.model.EntityModel;
 import net.minecraft.client.model.geom.ModelLayerLocation;
 import net.minecraft.client.model.geom.ModelPart;
@@ -11,7 +12,7 @@ import net.minecraft.resources.Identifier;
 public class TerracartModel extends EntityModel<TerracartRenderState> {
 
     public static final ModelLayerLocation LAYER =
-            new ModelLayerLocation(Identifier.fromNamespaceAndPath("terracart", "terracart"), "main");
+            new ModelLayerLocation(Identifier.fromNamespaceAndPath(Terracart.MOD_ID, "terracart"), "main");
 
     private final ModelPart root;
     private final ModelPart frontWheels;

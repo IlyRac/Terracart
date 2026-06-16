@@ -12,7 +12,8 @@
 			"links": {
 				"Enjoying the mod? Support me!": "https://ko-fi.com/ilyrac",
 				"License": "https://github.com/IlyRac/Terracart/blob/main/LICENSE.md"
-			}
+			},
+			"update_checker": true
 		}
 	},
 	"license": "IlyRac License",
@@ -23,7 +24,7 @@
 			"com.ilyrac.terracart.Terracart"
 		],
 		"client": [
-			"com.ilyrac.terracart.TerracartClient"
+			"com.ilyrac.terracart.client.TerracartClient"
 		]
 	},
 	"mixins": [
@@ -34,8 +35,8 @@
 		}
 	],
 	"depends": {
-		"fabricloader": ">=0.18.4",
-		"minecraft": "~26.1",
+		"fabricloader": ">=0.19.3",
+		"minecraft": "~26.2",
 		"java": ">=25",
 		"fabric-api": "*"
 	}

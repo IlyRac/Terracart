@@ -1,4 +1,4 @@
-package com.ilyrac.terracart.sound;
+package com.ilyrac.terracart.client.sound;
 
 import com.ilyrac.terracart.entity.TerracartEntity;
 import net.minecraft.client.Minecraft;

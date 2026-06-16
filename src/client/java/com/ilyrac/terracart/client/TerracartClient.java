@@ -1,16 +1,17 @@
-package com.ilyrac.terracart;
+package com.ilyrac.terracart.client;
 
+import com.ilyrac.terracart.Terracart;
 import com.ilyrac.terracart.entity.ModEntities;
 import com.ilyrac.terracart.entity.TerracartEntity;
-import com.ilyrac.terracart.model.TerracartModel;
+import com.ilyrac.terracart.client.model.TerracartModel;
 import com.ilyrac.terracart.network.TerracartInputPayload;
-import com.ilyrac.terracart.renderer.TerracartRenderer;
-import com.ilyrac.terracart.sound.TerracartSoundController;
+import com.ilyrac.terracart.client.renderer.TerracartRenderer;
+import com.ilyrac.terracart.client.sound.TerracartSoundController;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
-import net.fabricmc.fabric.api.client.rendering.v1.ModelLayerRegistry;
 import net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry;
+import net.fabricmc.fabric.api.client.rendering.v1.ModelLayerRegistry;
 import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElement;
 import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
 import net.fabricmc.fabric.api.client.rendering.v1.hud.VanillaHudElements;
@@ -95,7 +96,7 @@ public class TerracartClient implements ClientModInitializer {
 		// We attach it AFTER the Boss Bar so it renders in the main HUD layer.
 		HudElementRegistry.attachElementAfter(
 				VanillaHudElements.BOSS_BAR,
-				Identifier.fromNamespaceAndPath("terracart", "stats_display"),
+				Identifier.fromNamespaceAndPath(Terracart.MOD_ID, "stats_display"),
 				terracartHud
 		);
 	}

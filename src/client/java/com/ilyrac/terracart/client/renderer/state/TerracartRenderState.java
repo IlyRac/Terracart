@@ -1,4 +1,4 @@
-package com.ilyrac.terracart.renderer.state;
+package com.ilyrac.terracart.client.renderer.state;
 
 import net.minecraft.client.renderer.entity.state.EntityRenderState;
 import net.minecraft.resources.Identifier;
