@@ -2,7 +2,7 @@
   "type": "minecraft:smelting",
   "category": "misc",
   "cookingtime": 400,
-  "experience": 0.2,
+  "experience": 0.8,
   "ingredient": "#terracart:colored_terracarts",
   "result": {
     "id": "terracart:terracart"

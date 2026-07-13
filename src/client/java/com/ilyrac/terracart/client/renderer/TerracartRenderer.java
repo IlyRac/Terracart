@@ -13,6 +13,7 @@ import net.minecraft.client.renderer.state.level.CameraRenderState;
 import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.resources.Identifier;
 import net.minecraft.util.Mth;
+import net.minecraft.world.entity.LivingEntity;
 import org.jspecify.annotations.NonNull;
 
 public class TerracartRenderer extends EntityRenderer<TerracartEntity, TerracartRenderState> {
@@ -69,6 +70,22 @@ public class TerracartRenderer extends EntityRenderer<TerracartEntity, Terracart
         float wheelPrev = entity.getPrevWheelRotation();
         float wheelCurr = entity.getWheelRotation();
         state.wheelRotation = Mth.lerp(partialTick, wheelPrev, wheelCurr);
+
+        float steeringWheelDegrees = 0.0F;
+        float groundWheelDegrees = 0.0F;
+
+        if (entity.getControllingPassenger() instanceof LivingEntity rider) {
+            if (rider.xxa > 0.0F) {
+                steeringWheelDegrees = -15.0F;
+                groundWheelDegrees = -10.75F;
+            } else if (rider.xxa < 0.0F) {
+                steeringWheelDegrees = 15.0F;
+                groundWheelDegrees = 10.75F;
+            }
+        }
+
+        state.steeringRotation = steeringWheelDegrees * (float)(Math.PI / 180.0F);
+        state.frontWheelYaw = groundWheelDegrees * (float)(Math.PI / 180.0F);
     }
 
     @Override

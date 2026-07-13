@@ -7,6 +7,8 @@ public class TerracartRenderState extends EntityRenderState {
     public float yaw;
     public Identifier texture;
     public float wheelRotation = 0.0F;
+    public float steeringRotation = 0.0F;
+    public float frontWheelYaw = 0.0F;
 
     public TerracartRenderState() {
         super();
