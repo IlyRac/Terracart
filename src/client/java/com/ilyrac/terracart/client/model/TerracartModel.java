@@ -15,8 +15,8 @@ public class TerracartModel extends EntityModel<TerracartRenderState> {
             new ModelLayerLocation(Identifier.fromNamespaceAndPath(Terracart.MOD_ID, "terracart"), "main");
 
     private final ModelPart root;
-    private final ModelPart frontLeftWheel;   // Split
-    private final ModelPart frontRightWheel;  // Split
+    private final ModelPart frontLeftWheel;
+    private final ModelPart frontRightWheel;
     private final ModelPart backWheels;
     private final ModelPart steeringWheel;
 
@@ -28,8 +28,6 @@ public class TerracartModel extends EntityModel<TerracartRenderState> {
         this.frontLeftWheel = wheels.getChild("Front_Left");
         this.frontRightWheel = wheels.getChild("Front_Right");
         this.backWheels = wheels.getChild("Back");
-
-        // Grab the moving wheel component
         this.steeringWheel = root.getChild("steering_wheel");
     }
 
@@ -41,7 +39,7 @@ public class TerracartModel extends EntityModel<TerracartRenderState> {
         // Wheels Root Group
         PartDefinition Wheels = partdefinition.addOrReplaceChild("Wheels", CubeListBuilder.create(), PartPose.offset(0.0F, 16.0F, 0.0F));
 
-        // FRONT LEFT WHEEL (Pivot shifted to X = 8.5F, and boxes compensated by -8.5F)
+        // FRONT LEFT WHEEL
         Wheels.addOrReplaceChild("Front_Left", CubeListBuilder.create()
                         .texOffs(210, 223).addBox(-1.5F, -4.0F, -4.0F, 3.0F, 8.0F, 8.0F, new CubeDeformation(0.0F))
                         .texOffs(233, 221).addBox(-1.5F, 4.0F, -2.0F, 3.0F, 1.0F, 4.0F, new CubeDeformation(0.0F))
@@ -50,7 +48,7 @@ public class TerracartModel extends EntityModel<TerracartRenderState> {
                         .texOffs(248, 227).addBox(-1.5F, -2.0F, 4.0F, 3.0F, 4.0F, 1.0F, new CubeDeformation(0.0F)),
                 PartPose.offset(8.5F, 3.0F, -10.0F));
 
-        // FRONT RIGHT WHEEL (Pivot shifted to X = -8.5F, and boxes compensated by +8.5F)
+        // FRONT RIGHT WHEEL
         Wheels.addOrReplaceChild("Front_Right", CubeListBuilder.create()
                         .texOffs(210, 189).addBox(-1.5F, -4.0F, -4.0F, 3.0F, 8.0F, 8.0F, new CubeDeformation(0.0F))
                         .texOffs(233, 239).addBox(-1.5F, 4.0F, -2.0F, 3.0F, 1.0F, 4.0F, new CubeDeformation(0.0F))
@@ -148,7 +146,7 @@ public class TerracartModel extends EntityModel<TerracartRenderState> {
                 .texOffs(30, 247).addBox(-14.0F, -5.0F, 2.0F, 14.0F, 3.0F, 1.0F, new CubeDeformation(0.0F))
                 .texOffs(30, 252).addBox(-14.0F, -8.0F, 3.0F, 14.0F, 3.0F, 1.0F, new CubeDeformation(0.0F)), PartPose.offset(7.0F, -8.0F, -8.0F));
 
-        //steering setup
+        // steering setup
         partdefinition.addOrReplaceChild("steering_holder", CubeListBuilder.create()
                 .texOffs(151, 254).addBox(-1.0F, -2.0F, -3.0F, 2.0F, 1.0F, 1.0F, new CubeDeformation(0.0F))
                 .texOffs(152, 250).addBox(-1.0F, -2.0F, -2.0F, 2.0F, 2.0F, 1.0F, new CubeDeformation(0.0F)), PartPose.offset(0.0F, 10.0F, -3.0F));
@@ -161,7 +159,7 @@ public class TerracartModel extends EntityModel<TerracartRenderState> {
                 .texOffs(138, 245).addBox(2.0F, -3.0F, 0.0F, 1.0F, 4.0F, 2.0F, new CubeDeformation(0.0F))
                 .texOffs(145, 247).addBox(1.0F, -2.0F, 0.0F, 1.0F, 2.0F, 2.0F, new CubeDeformation(0.0F)), PartPose.offset(0.0F, 10.0F, -4.0F));
 
-        //saddel setup
+        // saddle setup
         partdefinition.addOrReplaceChild("Saddle", CubeListBuilder.create()
                 .texOffs(88, 252).addBox(-2.0F, 2.0F, -2.0F, 12.0F, 1.0F, 3.0F, new CubeDeformation(0.0F))
                 .texOffs(87, 245).addBox(-2.0F, 0.0F, -2.0F, 12.0F, 2.0F, 4.0F, new CubeDeformation(0.0F)), PartPose.offset(-4.0F, 14.0F, 3.0F));
@@ -175,14 +173,18 @@ public class TerracartModel extends EntityModel<TerracartRenderState> {
         this.root.resetPose();
 
         float rotation = -state.wheelRotation;
-        this.backWheels.xRot = rotation;
-        this.frontLeftWheel.xRot = rotation;
-        this.frontRightWheel.xRot = rotation;
 
-        // Uses separate front-wheel variable
+        // 1. Back Wheels (Spin)
+        this.backWheels.xRot = rotation;
+
+        // 2. Front (Left + Right) Wheels (Turn + Spin)
+        this.frontLeftWheel.xRot = rotation;
         this.frontLeftWheel.yRot = state.frontWheelYaw;
+
+        this.frontRightWheel.xRot = rotation;
         this.frontRightWheel.yRot = state.frontWheelYaw;
 
+        // 3. Steering Wheel (Rotation)
         this.steeringWheel.zRot = -state.steeringRotation;
     }
 }

@@ -26,6 +26,7 @@ public class ModEntities {
                             .sized(1.6F, 1.1F)
                             .clientTrackingRange(8)
                             .updateInterval(3)
+                            .nameTagOffset(2.0f)
                             .build(TERRACART_KEY)
             );
 
