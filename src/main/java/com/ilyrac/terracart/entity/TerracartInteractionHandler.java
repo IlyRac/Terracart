@@ -20,23 +20,6 @@ public class TerracartInteractionHandler {
     public static InteractionResult handleInteraction(TerracartEntity cart, Player player, InteractionHand hand) {
         ItemStack stack = player.getItemInHand(hand);
 
-        // 0. Name Tag Handling
-        if (stack.is(Items.NAME_TAG)) {
-            Component customName = stack.get(DataComponents.CUSTOM_NAME);
-            if (customName != null) {
-                if (!cart.level().isClientSide()) {
-                    cart.setCustomName(customName);
-                    // CHANGE THIS TO FALSE:
-                    cart.setCustomNameVisible(false);
-
-                    if (!player.isCreative()) {
-                        stack.shrink(1);
-                    }
-                }
-                return InteractionResult.SUCCESS;
-            }
-        }
-
         // 1. Repair Mechanic
         if (stack.is(Items.IRON_INGOT)) {
             if (cart.getHealth() >= TerracartEntity.MAX_HEALTH) {
@@ -44,7 +27,7 @@ public class TerracartInteractionHandler {
                 return InteractionResult.SUCCESS;
             }
             cart.setHealth(cart.getHealth() + (TerracartEntity.MAX_HEALTH * 0.25f));
-            playSpecialEffect(cart, ModSounds.TERRACART_REPAIR, ParticleTypes.HAPPY_VILLAGER, 12, 0.05f);
+            playSpecialEffect(cart, ModSounds.TERRACART_REPAIR, ParticleTypes.EGG_CRACK, 12, 1f);
             if (!player.isCreative()) stack.shrink(1);
             player.sendOverlayMessage(Component.literal("Terracart repaired (+25%)"));
             return InteractionResult.SUCCESS;
@@ -53,6 +36,10 @@ public class TerracartInteractionHandler {
         // 2. Refueling Mechanic
         if (stack.is(Items.COAL)) {
             if (cart.getFuel() > (TerracartEntity.MAX_FUEL * 0.90)) {
+                player.sendOverlayMessage(Component.literal("Fuel tank is already full!"));
+                return InteractionResult.SUCCESS;
+            }
+            if (cart.getFuel() > (TerracartEntity.MAX_FUEL * 0.80)) {
                 player.sendOverlayMessage(Component.literal("Fuel tank is nearly full!"));
                 return InteractionResult.SUCCESS;
             }
@@ -70,6 +57,24 @@ public class TerracartInteractionHandler {
             }
             return InteractionResult.SUCCESS;
         }
+
+        // 4. Name Tag Handling
+        if (stack.is(Items.NAME_TAG)) {
+            Component customName = stack.get(DataComponents.CUSTOM_NAME);
+            if (customName != null) {
+                if (!cart.level().isClientSide()) {
+                    cart.setCustomName(customName);
+                    // CHANGE THIS TO FALSE:
+                    cart.setCustomNameVisible(false);
+
+                    if (!player.isCreative()) {
+                        stack.shrink(1);
+                    }
+                }
+                return InteractionResult.SUCCESS;
+            }
+        }
+
         return InteractionResult.PASS;
     }
 

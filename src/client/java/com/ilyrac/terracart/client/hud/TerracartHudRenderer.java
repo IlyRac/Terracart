@@ -15,31 +15,60 @@ public class TerracartHudRenderer {
         int screenW = context.guiWidth();
         int screenH = context.guiHeight();
 
-        int boxWidth = 95;
-        int boxHeight = 45;
-        int xLeft = screenW - boxWidth;
-        int yCenter = screenH / 2;
-        int yTop = yCenter - (boxHeight / 2);
-
-        // 1. Draw Background
-        context.fill(xLeft, yTop, screenW, yTop + boxHeight, 0x40000000);
-
-        int labelX = xLeft + 5;
-        int valueX = screenW - 5;
-
-        // Row 1: Speed
+        // --- HUD DATA SETUP ---
         String speedVal = String.format("%.1f", cart.getSpeedBps()) + " b/s";
-        context.text(font, "Speed:", labelX, yCenter - 15, 0xFFAAAAAA);
-        context.text(font, speedVal, valueX - font.width(speedVal), yCenter - 15, 0xFFFFFFFF);
-
-        // Row 2: Fuel
         String fuelVal = Math.round(cart.getFuelPercent() * 100.0f) + "%";
-        context.text(font, "Fuel:", labelX, yCenter - 3, 0xFFAAAAAA);
-        context.text(font, fuelVal, valueX - font.width(fuelVal), yCenter - 3, 0xFFFFFFFF);
-
-        // Row 3: Health
         String healthVal = Math.round(cart.getHealthPercent() * 100.0f) + "%";
-        context.text(font, "Condition:", labelX, yCenter + 9, 0xFFAAAAAA);
-        context.text(font, healthVal, valueX - font.width(healthVal), yCenter + 9, 0xFFFFFFFF);
+
+        String[] labels = {"Speed:", "Fuel:", "Condition:"};
+        String[] values = {speedVal, fuelVal, healthVal};
+
+        // --- STYLING CONSTANTS ---
+        int paddingH = 6;
+        int paddingV = 4;
+        int rowHeight = 9;
+        int margin = 5;
+
+        // Dynamic width calculation
+        int maxLabelWidth = 0;
+        for (String label : labels) {
+            maxLabelWidth = Math.max(maxLabelWidth, font.width(label));
+        }
+
+        int maxValueWidth = 0;
+        for (String value : values) {
+            maxValueWidth = Math.max(maxValueWidth, font.width(value));
+        }
+
+        // Box size math
+        int boxWidth = paddingH * 3 + maxLabelWidth + maxValueWidth;
+        int boxHeight = paddingV * 2 + rowHeight * labels.length;
+
+        // --- POSITIONING (Vertically Centered, Right Aligned) ---
+        int xLeft = screenW - boxWidth - margin;
+        int xRight = xLeft + boxWidth;
+        int yTop = (screenH - boxHeight) / 2;
+
+        // --- COLORS ---
+        int bgColor = 0xC0000000;       // Sleek dark-translucent backing
+        int labelColor = 0xFFAAAAAA;    // Soft gray for labels
+        int valueColor = 0xFFFFFFFF;    // Clean bright white for stats
+        int borderColor = 0xFFBBBBBB;  // Polished silver-iron border
+
+        // 1. Draw Translucent Background
+        context.fill(xLeft, yTop, xRight, yTop + boxHeight, bgColor);
+
+        // 2. Draw Labels and Values
+        for (int i = 0; i < labels.length; i++) {
+            int y = yTop + paddingV + i * rowHeight;
+            context.text(font, labels[i], xLeft + paddingH, y, labelColor, false);
+            context.text(font, values[i], xRight - paddingH - font.width(values[i]), y, valueColor, false);
+        }
+
+        // 3. Draw Polished Outer borderline
+        context.fill(xLeft, yTop, xRight, yTop + 1, borderColor);
+        context.fill(xLeft, yTop + boxHeight - 1, xRight, yTop + boxHeight, borderColor);
+        context.fill(xLeft, yTop, xLeft + 1, yTop + boxHeight, borderColor);
+        context.fill(xRight - 1, yTop, xRight, yTop + boxHeight, borderColor);
     };
 }
