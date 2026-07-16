@@ -13,10 +13,14 @@ public final class TerracartSoundController {
         Minecraft mc = Minecraft.getInstance();
         if (mc.level == null) return;
 
+        // Check if the player is actually in range of the entity to optimize sound processing
+        double distSq = mc.player != null ? cart.distanceToSqr(mc.player) : 0;
+        boolean inRange = distSq <= 4096.0; // 64 blocks range
+
         TerracartSoundInstance sound = ACTIVE_SOUNDS.get(cart);
 
-        // cart is removed, stop the sound instance
-        if (cart.isRemoved()) {
+        // Cart is removed or out of range, stop the sound
+        if (cart.isRemoved() || !inRange) {
             if (sound != null) {
                 mc.getSoundManager().stop(sound);
                 ACTIVE_SOUNDS.remove(cart);
@@ -24,7 +28,8 @@ public final class TerracartSoundController {
             return;
         }
 
-        if (sound == null) {
+        // Only start the sound loop if active and fuel exists
+        if (sound == null && cart.getEntityData().get(TerracartEntity.SOUND_ACTIVE)) {
             sound = new TerracartSoundInstance(cart);
             ACTIVE_SOUNDS.put(cart, sound);
             mc.getSoundManager().play(sound);

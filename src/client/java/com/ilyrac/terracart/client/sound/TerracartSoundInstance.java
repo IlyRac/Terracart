@@ -32,16 +32,16 @@ public class TerracartSoundInstance extends AbstractTickableSoundInstance {
         }
 
         // read server-synced values
-        float serverVol = cart.getEntityData().get(TerracartEntity.SOUND_VOLUME);
-        float serverPitch = cart.getEntityData().get(TerracartEntity.SOUND_PITCH);
+        float serverVol = cart.getSoundVolume();
+        float serverPitch = cart.getSoundPitch();
 
-        // never reach absolute zero
-        final float MIN_VOL = 0.001f;
-
-        float targetVolume = Math.max(serverVol, MIN_VOL);
-
+        // Only enforce minimum volume if the cart is supposed to make sound
+        float targetVolume = 0.0f;
+        if (cart.getEntityData().get(TerracartEntity.SOUND_ACTIVE)) {
+            targetVolume = serverVol;
+        }
         // tweak factor
-        final float CLIENT_LERP = 0.8f;
+        final float CLIENT_LERP = 0.15f;
         this.volume += (targetVolume - this.volume) * CLIENT_LERP;
         this.pitch  += (serverPitch - this.pitch) * CLIENT_LERP;
 

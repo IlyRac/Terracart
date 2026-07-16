@@ -24,7 +24,6 @@ import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
 public class TerracartEntity extends VehicleEntity {
-
     // ================================================================================================================
     //    DATA MANAGEMENT (STATE, SYNCS, GETTERS & SETTERS)
     // ================================================================================================================
@@ -52,10 +51,11 @@ public class TerracartEntity extends VehicleEntity {
     private double currentSpeed = 0.0;
     private float speedBps = 0.0F;
     private Vec3 lastPos = Vec3.ZERO;
-    private double lastX; // <-- Added back
-    private double lastZ; // <-- Added back
+    private double lastX;
+    private double lastZ;
     private boolean wasAirborne = false;
     private double airborneStartY = 0.0;
+    private boolean isFirstTick = true; // Add this field near other trackers
 
     public void setDriverInput(float fwd, float str) {
         this.driverForward = Mth.clamp(fwd, -1.0f, 1.0f);
@@ -115,7 +115,7 @@ public class TerracartEntity extends VehicleEntity {
     protected void defineSynchedData(SynchedEntityData.@NonNull Builder builder) {
         super.defineSynchedData(builder);
         builder.define(CART_COLOR, -1).define(FUEL_TICKS, 1200).define(WHEEL_ROTATION, 0.0f)
-                .define(SOUND_ACTIVE, false).define(SOUND_VOLUME, 1.0f).define(SOUND_PITCH, 1.0f)
+                .define(SOUND_ACTIVE, false).define(SOUND_VOLUME, 0.0f).define(SOUND_PITCH, 1.0f)
                 .define(CURRENT_HEALTH, MAX_HEALTH);
     }
 
@@ -137,6 +137,14 @@ public class TerracartEntity extends VehicleEntity {
     public void tick() {
         super.tick();
         this.prevWheelRotation = this.getWheelRotation();
+
+        // Prevent teleport/spawn physics leap on first tick
+        if (isFirstTick) {
+            this.lastX = this.getX();
+            this.lastZ = this.getZ();
+            this.lastPos = this.position();
+            this.isFirstTick = false;
+        }
 
         if (lastPos != Vec3.ZERO) speedBps = (float) (this.position().distanceTo(lastPos) * 20.0);
         lastPos = this.position();
@@ -174,6 +182,34 @@ public class TerracartEntity extends VehicleEntity {
     // ================================================================================================================
     //    DELEGATED ACTIONS & COMPATIBILITY OVERRIDES
     // ================================================================================================================
+
+    @Override
+    public @NonNull EntityDimensions getDimensions(@NonNull Pose pose) {
+        return EntityDimensions.scalable((float) TerracartCollisionHandler.CART_LENGTH, TerracartCollisionHandler.BOX_HEIGHT);
+    }
+
+    @Override
+    public void refreshDimensions() {
+        super.refreshDimensions();
+        this.reconstructRectangularBox(this.getX(), this.getY(), this.getZ());
+    }
+
+    @Override
+    public void setPos(double x, double y, double z) {
+        super.setPos(x, y, z);
+        this.reconstructRectangularBox(x, y, z);
+    }
+
+    @Override
+    public void setYRot(float yaw) {
+        if (TerracartCollisionHandler.canRotateTo(this, yaw)) {
+            super.setYRot(yaw);
+        }
+    }
+
+    private void reconstructRectangularBox(double x, double y, double z) {
+        super.setBoundingBox(TerracartCollisionHandler.getCalculatedBoundingBox(x, y, z, this.getYRot()));
+    }
 
     @Override
     public @NonNull InteractionResult interact(@NonNull Player player, @NonNull InteractionHand hand, @NonNull Vec3 pos) {
@@ -246,11 +282,6 @@ public class TerracartEntity extends VehicleEntity {
     @Override
     public boolean canCollideWith(@Nullable Entity entity) {
         return TerracartCompatibilityHandler.canCollideWith(this, entity);
-    }
-
-    @Override
-    public @NonNull EntityDimensions getDimensions(@NonNull Pose pose) {
-        return TerracartCompatibilityHandler.getDimensions(pose);
     }
 
     @Override

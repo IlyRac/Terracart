@@ -8,10 +8,75 @@ import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntitySelector;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import java.util.List;
 
 public class TerracartCollisionHandler {
+
+    // Keep the dimensions central here
+    public static final double CART_LENGTH = 2.8;
+    public static final double CART_WIDTH = 1.4;
+    public static final float BOX_HEIGHT = 1.25F;
+
+    /**
+     * Checks if a yaw angle corresponds to an East/West alignment.
+     */
+    public static boolean isYawEastWest(float yaw) {
+        float normalized = (yaw % 360.0F + 360.0F) % 360.0F;
+        return (normalized >= 45.0F && normalized < 135.0F) || (normalized >= 225.0F && normalized < 315.0F);
+    }
+
+    /**
+     * Dry-runs a rotation change to see if the new bounding box would collide with solid walls.
+     * Returns true if the rotation is safe, false if it should be blocked.
+     */
+    public static boolean canRotateTo(TerracartEntity cart, float targetYaw) {
+        float currentYaw = cart.getYRot();
+        if (Mth.equal(currentYaw, targetYaw)) {
+            return true;
+        }
+
+        boolean currentIsEW = isYawEastWest(currentYaw);
+        boolean targetIsEW = isYawEastWest(targetYaw);
+
+        // Only perform the block collision check if the box orientation is actually changing
+        if (currentIsEW != targetIsEW) {
+            double targetBoxX = targetIsEW ? CART_LENGTH : CART_WIDTH;
+            double targetBoxZ = targetIsEW ? CART_WIDTH : CART_LENGTH;
+
+            AABB targetBox = new AABB(
+                    cart.getX() - (targetBoxX / 2.0),
+                    cart.getY(),
+                    cart.getZ() - (targetBoxZ / 2.0),
+                    cart.getX() + (targetBoxX / 2.0),
+                    cart.getY() + BOX_HEIGHT,
+                    cart.getZ() + (targetBoxZ / 2.0)
+            );
+
+            // Block rotation if it intersects a solid block
+            return !cart.level().collidesWithSuffocatingBlock(cart, targetBox);
+        }
+
+        return true;
+    }
+
+    /**
+     * Generates a bounding box aligned to the current orientation of the cart.
+     */
+    public static AABB getCalculatedBoundingBox(double x, double y, double z, float yaw) {
+        double boxX = isYawEastWest(yaw) ? CART_LENGTH : CART_WIDTH;
+        double boxZ = isYawEastWest(yaw) ? CART_WIDTH : CART_LENGTH;
+
+        return new AABB(
+                x - (boxX / 2.0),
+                y,
+                z - (boxZ / 2.0),
+                x + (boxX / 2.0),
+                y + BOX_HEIGHT,
+                z + (boxZ / 2.0)
+        );
+    }
 
     public static void handleCollisions(TerracartEntity cart, double speed) {
         List<Entity> list = cart.level().getEntities(cart, cart.getBoundingBox().inflate(0.2, -0.01, 0.2), EntitySelector.pushableBy(cart));
