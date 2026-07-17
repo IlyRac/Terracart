@@ -82,7 +82,7 @@ public class TerracartCollisionHandler {
         List<Entity> list = cart.level().getEntities(cart, cart.getBoundingBox().inflate(0.2, -0.01, 0.2), EntitySelector.pushableBy(cart));
         for (Entity target : list) {
             if (target.hasPassenger(cart)) continue;
-            cart.push(target); // This calls the delegated push override
+            cart.push(target);
 
             if (cart.getHitCooldown() == 0 && speed > 0.1 && target instanceof LivingEntity living && living != cart.getControllingPassenger()) {
                 if (target.position().subtract(cart.position()).lengthSqr() <= 1.0E-6) continue;

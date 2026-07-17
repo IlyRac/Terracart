@@ -30,22 +30,28 @@ public class TerracartPhysics {
             return new Vec3(horiz.x, Math.max(motion.y, -0.6) * 0.85, horiz.z);
         }
 
-        if (!cart.hasFuel()) {
-            cart.setCurrentSpeed(cart.getCurrentSpeed() * FRICTION);
-        }
+        double currentSpeed = cart.getCurrentSpeed();
 
-        if (cart.getControllingPassenger() instanceof Player player && cart.hasFuel()) {
+        // 1. Check if a player is riding
+        if (cart.getControllingPassenger() instanceof Player player) {
             float forward = cart.level().isClientSide() ? player.zza : cart.getDriverForward();
             float strafe = cart.level().isClientSide() ? -player.xxa : cart.getDriverStrafe();
 
-            double currentSpeed = cart.getCurrentSpeed();
-            if (forward > 0) currentSpeed += (currentSpeed < 0 ? ACCEL * 3 : ACCEL);
-            else if (forward < 0) currentSpeed -= (currentSpeed > 0 ? ACCEL * 6 : ACCEL);
-            else currentSpeed *= FRICTION;
+            // 2. Only allow acceleration if the tank has fuel!
+            if (cart.hasFuel()) {
+                if (forward > 0) currentSpeed += (currentSpeed < 0 ? ACCEL * 3 : ACCEL);
+                else if (forward < 0) currentSpeed -= (currentSpeed > 0 ? ACCEL * 6 : ACCEL);
+                else currentSpeed *= FRICTION;
+            } else {
+                // Out of fuel: ignore player forward/backward throttle and decelerate smoothly
+                currentSpeed *= FRICTION;
+            }
 
             currentSpeed = Mth.clamp(currentSpeed, -MAX_SPEED, MAX_SPEED);
+            if (Math.abs(currentSpeed) < 0.001) currentSpeed = 0.0;
             cart.setCurrentSpeed(currentSpeed);
 
+            // 3. Turning Logic: Allow steering while coasting until the cart comes to a complete halt
             if (Math.abs(currentSpeed) > 0.01 && strafe != 0) {
                 float turn = 7.5F * strafe * (0.3F + 0.7F * (1.0F - Math.min((float) (Math.abs(currentSpeed) / MAX_SPEED), 1.0F)));
                 cart.setYRot(cart.getYRot() + turn);
@@ -56,11 +62,16 @@ public class TerracartPhysics {
                 player.yRotO = player.getYRot();
             }
 
+            // 4. Continue applying directional momentum using currentSpeed while coasting
             float rad = (float) Math.toRadians(cart.getYRot());
             return new Vec3(-Math.sin(rad) * currentSpeed, motion.y, Math.cos(rad) * currentSpeed);
         }
 
-        cart.setCurrentSpeed(cart.getCurrentSpeed() * FRICTION);
+        // No driver riding: apply friction and coast to halt
+        currentSpeed *= FRICTION;
+        if (Math.abs(currentSpeed) < 0.001) currentSpeed = 0.0;
+        cart.setCurrentSpeed(currentSpeed);
+
         return new Vec3(motion.x * 0.95, motion.y, motion.z * 0.95);
     }
 
@@ -84,12 +95,46 @@ public class TerracartPhysics {
             cart.setPos(cart.xo, cart.yo, cart.zo);
             cart.move(MoverType.SELF, stepResult);
             if (cart.onGround()) cart.setDeltaMovement(cart.getDeltaMovement().multiply(1.0, 0.0, 1.0));
+            cart.setCurrentSpeed(cart.getCurrentSpeed() * 0.98);
         } else {
             if (isBlocked) {
-                TerracartCollisionHandler.performCrashImpact(cart, origMotion); // Updated call!
+                TerracartCollisionHandler.performCrashImpact(cart, origMotion);
                 cart.setCurrentSpeed(cart.getCurrentSpeed() * 0.95);
             } else {
                 cart.setCurrentSpeed(cart.getCurrentSpeed() * 0.5);
+            }
+        }
+    }
+
+    public static void handleStepDown(TerracartEntity cart, Vec3 origMotion) {
+        // If the cart is moving forward, was just on the ground, but is now slightly airborne downward
+        if (!cart.onGround() && cart.getDeltaMovement().y <= 0.0 && origMotion.horizontalDistanceSqr() >= 1.0E-6) {
+            AABB box = cart.getBoundingBox();
+            Vec3 downstreamMotion = new Vec3(origMotion.x, 0.0, origMotion.z);
+
+            // Scan downward up to 1.0 block to see if there is solid ground directly beneath the next step
+            boolean foundGroundBelow = false;
+            double dropY = 0.0;
+
+            for (double y = 0.2; y <= 1.0; y += 0.2) {
+                // If there's no collision at the moved position, but moving a bit further down hits ground
+                if (cart.level().noCollision(cart, box.move(downstreamMotion.x, -y, downstreamMotion.z))) {
+                    if (!cart.level().noCollision(cart, box.move(downstreamMotion.x, -(y + 0.2), downstreamMotion.z))) {
+                        foundGroundBelow = true;
+                        dropY = -y;
+                        break;
+                    }
+                }
+            }
+
+            if (foundGroundBelow) {
+                // Snap the cart down to the step so it doesn't float
+                cart.move(MoverType.SELF, new Vec3(0.0, dropY, 0.0));
+                // Reset vertical velocity accumulation so it doesn't cause a speed explosion
+                Vec3 currentMove = cart.getDeltaMovement();
+                cart.setDeltaMovement(currentMove.x, 0.0, currentMove.z);
+                // Soften the high-speed descent slightly so it doesn't launch wildly
+                cart.setCurrentSpeed(cart.getCurrentSpeed() * 0.99);
             }
         }
     }

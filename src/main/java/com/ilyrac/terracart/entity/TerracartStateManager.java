@@ -40,7 +40,7 @@ public class TerracartStateManager {
     }
 
     public static void updateSoundState(TerracartEntity cart, double speed) {
-        boolean active = speed > 0.01 && cart.onGround() && cart.hasFuel();
+        boolean active = speed > 0.01 && cart.onGround();
         float targetVolume = active ? Mth.clamp((float) (speed * 2.0), 0.0F, 1.0F) : 0.0F;
         float targetPitch = active ? 1.0F + Mth.clamp((float) (speed * 0.6), 0.0F, 1.0F) : 1.0F;
 

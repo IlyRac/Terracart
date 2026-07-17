@@ -22,7 +22,21 @@ public class TerracartCompatibilityHandler {
     }
 
     public static Vec3 getPassengerRidingPosition(TerracartEntity cart, Entity passenger) {
-        return cart.position().add(0.0, 0.6, 0.0);
+        // Define local offsets relative to the center of the cart
+        double localX = 0.0;  // Centered sideways
+        double localY = 0.7;  // Height offset
+        double localZ = -0.4;  // backward/forward offset
+
+        // Get cart yaw in radians
+        float yawRad = (float) Math.toRadians(cart.getYRot());
+        float cos = (float) Math.cos(yawRad);
+        float sin = (float) Math.sin(yawRad);
+
+        // Apply rotation matrix calculation
+        double rotatedX = localX * cos - localZ * sin;
+        double rotatedZ = localX * sin + localZ * cos;
+
+        return cart.position().add(rotatedX, localY, rotatedZ);
     }
 
     public static boolean canRide(TerracartEntity cart, Entity entity) {

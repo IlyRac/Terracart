@@ -162,6 +162,7 @@ public class TerracartEntity extends VehicleEntity {
         this.move(MoverType.SELF, motion);
 
         TerracartPhysics.handleStepUp(this, motion);
+        TerracartPhysics.handleStepDown(this, motion);
         TerracartPhysics.handleLandFallDamage(this);
 
         // Visuals & Rotations
