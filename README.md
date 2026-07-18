@@ -17,24 +17,26 @@
 
 <h1>Terracart – Terrain Cart</h1>
 
-<p>Vanilla-friendly drivable cart — hop in, refuel with <strong>coal</strong>, repair with <strong>iron</strong>, pick one of <strong>16 colors</strong>, and travel around your world.</p>
+<p>Vanilla-friendly drivable cart — hop in, refuel with <strong>coal</strong>, repair with <strong>iron</strong>, choose one of <strong>16 colors</strong>, name it with a <strong>nametag</strong>, and travel around your world.</p>
 
-<p><img src="https://cdn.modrinth.com/data/cached_images/9bf9852c021c9342a5ab7f016fdca0049a414a02.gif" alt="Dramatic-1" style="max-width:100%;"></p>
+<p><img src="" alt="" style="max-width:100%; margin-bottom:8px;"></p>
 
 <hr>
 
 <details>
   <summary>✨ Features</summary>
   <ul>
-    <li><strong>Drive</strong>: rideable cart with smooth movement.</li>
-    <li><strong>Fuel</strong>: burns <strong>only while moving</strong>; refuel with <strong>coal</strong>.</li>
-    <li><strong>Repair</strong>: use <strong>iron</strong> for repairs.</li>
-    <li><strong>Colorful</strong>: choose <strong>one of 16 colors</strong>.</li>
-    <li><strong>Survival balance</strong>: destroyed carts drop <strong>raw materials</strong>: <strong>3–7 iron</strong>, <strong>1 wheel</strong>, <strong>1 furnace</strong>.</li>
-    <li><strong>HUD</strong>: on-ride HUD shows <em>speed / fuel / health</em>.</li>
-    <li><strong>Sound & Particles</strong>: custom sounds and impact particles for clear feedback.</li>
-    <li><strong>Damage</strong>: the cart deals damage to mobs on impact.</li>
-    <li><strong>Vanilla-friendly</strong>: designed to feel like a natural vanilla addition.</li>
+    <li><strong>Drive</strong>: Rideable cart with smooth movement.</li>
+    <li><strong>Name Tag Support</strong>: Customize your vehicle by giving it a name.</li>
+    <li><strong>Model & Animations</strong>: High-quality vehicle model featuring full moving, steering, and turning animations.</li>
+    <li><strong>Fuel</strong>: Consumes fuel only while moving; refuel using <strong>coal</strong>.</li>
+    <li><strong>Repair</strong>: Vehicles take damage from hits and crashes; repair them using <strong>iron</strong>.</li>
+    <li><strong>Colorful</strong>: Personalize your ride with <strong>one of 16 colors</strong>.</li>
+    <li><strong>Survival Balance</strong>: Designed from the ground up to feel like a natural vanilla survival feature.</li>
+    <li><strong>HUD</strong>: On-ride HUD-BOX clearly displays your *speed / fuel / health*.</li>
+    <li><strong>Sound & Particles</strong>: Immersive custom sounds and impact particles for clear gameplay feedback.</li>
+    <li><strong>Damage</strong>: Run down enemies by dealing impact damage to mobs.</li>
+    <li><strong>Vanilla-Friendly</strong>: Built to fit perfectly alongside classic Minecraft mechanics.</li>
   </ul>
 </details>
 
@@ -49,8 +51,9 @@
     </li>
     <li>Right-click to mount.</li>
     <li>Use normal movement keys to drive.</li>
-    <li><strong>Refuel</strong> with <strong>coal</strong> while moving (fuel drains only while moving).</li>
-    <li><strong>Repair</strong> with <strong>iron</strong> when damaged.</li>
+    <li>Use a name tag to name the vehicle.</li>
+    <li><strong>Refuel</strong> with <strong>coal</strong>.</li>
+    <li><strong>Repair</strong> with <strong>iron</strong>.</li>
     <li>If the cart is <strong>destroyed</strong>, collect dropped materials and rebuild.</li>
     <li>Travel around your world and have fun.</li>
   </ol>
@@ -60,11 +63,13 @@
   <summary>🖼️ Gallery</summary>
   <p>Screenshots taken on the <strong>Umihara City</strong> map by <strong>Shiomate</strong> — huge thanks!</p>
   <p>Map: <a href="https://www.planetminecraft.com/project/umiharacity/" target="_blank" rel="noopener">Umihara City 海原</a> — Creator: <a href="https://www.planetminecraft.com/member/shiomate/" target="_blank" rel="noopener">Shiomate</a></p>
-  <img src="https://cdn.modrinth.com/data/cached_images/b5029c90c6e33eae7a0951e5b5fc05f3725ded28.png" alt="Parking" style="max-width:100%; margin-bottom:8px;">
-  <img src="https://cdn.modrinth.com/data/cached_images/addf2fc627b7053fa68a06b385e87776a53fd7eb_0.webp" alt="Road" style="max-width:100%; margin-bottom:8px;">
-  <img src="https://cdn.modrinth.com/data/cached_images/3c8c5af5d7d9b7b6cc5186d5e76f69525393c78b.png" alt="AllColors" style="max-width:100%; margin-bottom:8px;">
-  <img src="https://cdn.modrinth.com/data/cached_images/82f40934f48fef0304f7a7dc6c9ac53d9bc74a0c_0.webp" alt="Dramatic-2" style="max-width:100%; margin-bottom:8px;">
-  <img src="https://cdn.modrinth.com/data/cached_images/a1f85e7659e81beed9cb29dfebdeaa32e6a2115a_0.webp" alt="Riding" style="max-width:100%; margin-bottom:8px;">
-  <img src="https://cdn.modrinth.com/data/cached_images/acfbb3962e53474cdf42612ce5f1463e740ba109_0.webp" alt="Top" style="max-width:100%; margin-bottom:8px;">
-  <img src="https://cdn.modrinth.com/data/cached_images/2d0e4e26df59584e9c751d174e554db2a8f6871f.png" alt="Recipes" style="max-width:100%;">
+  <img src="" alt="" style="max-width:100%; margin-bottom:8px;">
 </details>
+
+<hr>
+
+<h2>📌 Notes</h2>
+<ul>
+    <li><strong>Flashback</strong>: Carts will appear stuttering during recorded replay playback.</li>
+    <li><strong>Debugify</strong>: Enabling the fix for <strong>MC-259512</strong> causes the cart to stutter while turning (Debugify right now mistakenly shows the tooltip "Increased input delay when riding an entity", while it should be "Horizontal camera rotation lags when riding").</li>
+</ul>
