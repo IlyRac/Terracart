@@ -1,13 +1,12 @@
 {
     "type": "minecraft:crafting_shaped",
     "pattern": [
-        "BNB",
-        "NIN",
-        "BNB"
+        " B ",
+        "BIB",
+        " B "
     ],
     "key": {
         "B": "minecraft:black_wool",
-        "N": "minecraft:iron_nugget",
         "I": "minecraft:iron_ingot"
     },
     "result": {

@@ -7,7 +7,7 @@ import net.minecraft.sounds.SoundEvent;
 
 public class ModSounds {
 
-    public static final SoundEvent TERRACART_MOVING_SOUND  = register("terracart_moving_sound");
+    public static final SoundEvent TERRACART_MOVING  = register("terracart_moving");
     public static final SoundEvent TERRACART_REFUEL = register("terracart_refuel");
     public static final SoundEvent TERRACART_CRASH = register("terracart_crash");
     public static final SoundEvent TERRACART_HIT = register("terracart_hit");

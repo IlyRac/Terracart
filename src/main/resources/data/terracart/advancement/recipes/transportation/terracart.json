@@ -21,6 +21,16 @@
         ]
       }
     },
+    "has_saddle": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": "minecraft:saddle"
+          }
+        ]
+      }
+    },
     "has_the_recipe": {
       "trigger": "minecraft:recipe_unlocked",
       "conditions": {
@@ -31,6 +41,7 @@
   "requirements": [
     [
       "has_the_recipe",
+      "has_saddle",
       "has_terracart_wheel",
       "has_minecart"
     ]

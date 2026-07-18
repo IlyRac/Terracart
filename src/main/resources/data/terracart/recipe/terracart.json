@@ -1,7 +1,7 @@
 {
     "type": "minecraft:crafting_shaped",
     "pattern": [
-        "WIW",
+        "WSW",
         "FMG",
         "WIW"
     ],
@@ -10,6 +10,7 @@
         "M": "minecraft:minecart",
         "G": "minecraft:glass_pane",
         "I": "minecraft:iron_ingot",
+        "S": "minecraft:saddle",
         "W": "terracart:terracart_wheel"
     },
     "result": {
