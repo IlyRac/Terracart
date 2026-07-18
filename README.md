@@ -19,7 +19,7 @@
 
 <p>Vanilla-friendly drivable cart — hop in, refuel with <strong>coal</strong>, repair with <strong>iron</strong>, choose one of <strong>16 colors</strong>, name it with a <strong>nametag</strong>, and travel around your world.</p>
 
-<p><img src="" alt="" style="max-width:100%; margin-bottom:8px;"></p>
+<p><img width="800" height="496" alt="Driving" src="https://github.com/user-attachments/assets/d0f3e2bc-8bda-4f5c-98ef-bb43f346dfa6" style="max-width:100%; margin-bottom:8px;"/></p>
 
 <hr>
 
@@ -62,8 +62,15 @@
 <details>
   <summary>🖼️ Gallery</summary>
   <p>Screenshots taken on the <strong>Umihara City</strong> map by <strong>Shiomate</strong> — huge thanks!</p>
-  <p>Map: <a href="https://www.planetminecraft.com/project/umiharacity/" target="_blank" rel="noopener">Umihara City 海原</a> — Creator: <a href="https://www.planetminecraft.com/member/shiomate/" target="_blank" rel="noopener">Shiomate</a></p>
-  <img src="" alt="" style="max-width:100%; margin-bottom:8px;">
+  <p>Map: <a href="https://www.planetminecraft.com/project/umiharacity/" target="_blank" rel="noopener">Umihara City 海原</a> — Creator: <a href="https://www.planetminecraft.com/member/shiomate/"    target="_blank" rel="noopener">Shiomate</a></p>
+
+  <img width="1440" height="899" alt="Rise" src="https://github.com/user-attachments/assets/e4454b30-36a4-4b65-9110-4e0f7aa94d29" style="max-width:100%; margin-bottom:8px;"/>
+  <img width="1440" height="899" alt="Cyan" src="https://github.com/user-attachments/assets/5d8ff920-587f-4f52-bea3-c42144f4af0c" style="max-width:100%; margin-bottom:8px;"/>
+  <img width="1440" height="899" alt="Parking" src="https://github.com/user-attachments/assets/91a01aca-a44c-424e-afa8-6a459615ebe0" style="max-width:100%; margin-bottom:8px;"/>
+  <img width="1440" height="899" alt="NameIT" src="https://github.com/user-attachments/assets/af2fe7e9-0f6a-4967-8467-2057e0672f66" /><p align="center">
+  <img width="1440" height="899" alt="AllColors" src="https://github.com/user-attachments/assets/aa8ea39e-a805-49b6-9eaf-ebe686061a35" style="max-width:100%; margin-bottom:8px;"/>
+  <img width="1800" height="1500" alt="Steering And Wheels" src="https://github.com/user-attachments/assets/fcc13ff0-d791-4279-a015-522ec938f994" style="max-width:100%; margin-bottom:8px;"/>
+  <img width="355" height="510" alt="Recipes" src="https://github.com/user-attachments/assets/339c3a76-a341-4381-b3ba-b8fd3f4168aa" style="max-width:100%; margin-bottom:8px;"/>
 </details>
 
 <hr>
