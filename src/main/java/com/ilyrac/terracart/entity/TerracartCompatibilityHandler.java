@@ -1,5 +1,6 @@
 package com.ilyrac.terracart.entity;
 
+import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityDimensions;
 import net.minecraft.world.entity.LivingEntity;
@@ -37,6 +38,23 @@ public class TerracartCompatibilityHandler {
         double rotatedZ = localX * sin + localZ * cos;
 
         return cart.position().add(rotatedX, localY, rotatedZ);
+    }
+
+    public static void handlePositionRider(TerracartEntity cart, Entity passenger) {
+        if (passenger instanceof LivingEntity living) {
+            // Lock the passenger's body to the cart so they visually turn for other players
+            living.setYBodyRot(cart.getYRot());
+
+            // Smoothly sweep the driver's camera using the exact rotation delta of the cart
+            if (cart.level().isClientSide() && passenger == cart.getControllingPassenger() && passenger instanceof Player player) {
+                float deltaYaw = Mth.wrapDegrees(cart.getYRot() - cart.yRotO);
+
+                if (Math.abs(deltaYaw) > 0.001F) {
+                    player.setYRot(player.getYRot() + deltaYaw);
+                    player.setYHeadRot(player.getYHeadRot() + deltaYaw);
+                }
+            }
+        }
     }
 
     public static boolean canRide(TerracartEntity cart, Entity entity) {

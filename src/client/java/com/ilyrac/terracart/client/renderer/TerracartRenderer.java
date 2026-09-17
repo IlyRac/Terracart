@@ -60,7 +60,7 @@ public class TerracartRenderer extends EntityRenderer<TerracartEntity, Terracart
         state.steeringRotation = steeringDegrees * Mth.DEG_TO_RAD;
         state.frontWheelYaw = groundWheelDegrees * Mth.DEG_TO_RAD;
 
-// 3. Conditional Name Tag Extraction (Respects distance & aiming)
+        // 3. Conditional Name Tag Extraction (Respects distance & aiming)
         Minecraft mc = Minecraft.getInstance();
         boolean shouldShow = false;
 
@@ -94,8 +94,8 @@ public class TerracartRenderer extends EntityRenderer<TerracartEntity, Terracart
         // Sequential transformations
         poseStack.scale(1.3F, 1.3F, 1.3F);
         poseStack.translate(0.0F, 1.5F, 0.0F);
-        poseStack.mulPose(Axis.XP.rotationDegrees(180.0F));
-        poseStack.mulPose(Axis.YP.rotationDegrees(state.yaw));
+        poseStack.rotate(Axis.XP.rotationDegrees(180.0F));
+        poseStack.rotate(Axis.YP.rotationDegrees(state.yaw));
 
         collector.submitModel(
                 model,
@@ -104,8 +104,7 @@ public class TerracartRenderer extends EntityRenderer<TerracartEntity, Terracart
                 model.renderType(state.texture),
                 state.lightCoords,
                 OverlayTexture.NO_OVERLAY,
-                0,
-                null
+                0
         );
 
         poseStack.popPose();

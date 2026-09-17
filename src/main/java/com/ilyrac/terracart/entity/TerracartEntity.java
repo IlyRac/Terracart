@@ -135,7 +135,9 @@ public class TerracartEntity extends VehicleEntity {
 
     @Override
     public void tick() {
-        super.tick();
+        // 1. Cache state first
+        this.yRotO = this.getYRot();
+        this.xRotO = this.getXRot();
         this.prevWheelRotation = this.getWheelRotation();
 
         // Prevent teleport/spawn physics leap on first tick
@@ -156,7 +158,7 @@ public class TerracartEntity extends VehicleEntity {
 
         TerracartStateManager.handleHazards(this);
 
-        // Movement & Physics
+        // 2. Execute physics (this changes getYRot)
         Vec3 motion = TerracartPhysics.applyControllerInput(this, TerracartPhysics.applyGravity(this, this.getDeltaMovement()));
         this.setDeltaMovement(motion);
         this.move(MoverType.SELF, motion);
@@ -178,11 +180,20 @@ public class TerracartEntity extends VehicleEntity {
         TerracartCollisionHandler.handleCollisions(this, speedSq);
 
         lastX = this.getX(); lastZ = this.getZ();
+
+        // 3. FINALLY, call super.tick() so passengers are positioned using the NEW rotation delta
+        super.tick();
     }
 
     // ================================================================================================================
     //    DELEGATED ACTIONS & COMPATIBILITY OVERRIDES
     // ================================================================================================================
+
+    @Override
+    protected void positionRider(@NonNull Entity passenger,  Entity.@NonNull MoveFunction moveFunction) {
+        super.positionRider(passenger, moveFunction);
+        TerracartCompatibilityHandler.handlePositionRider(this, passenger);
+    }
 
     @Override
     public @NonNull EntityDimensions getDimensions(@NonNull Pose pose) {
