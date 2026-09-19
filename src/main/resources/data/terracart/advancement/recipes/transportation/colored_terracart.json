@@ -14,7 +14,7 @@
     "has_the_recipe": {
       "trigger": "minecraft:recipe_unlocked",
       "conditions": {
-        "recipe": "terracart:red_terracart"
+        "recipes": "terracart:red_terracart"
       }
     }
   },

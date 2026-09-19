@@ -78,6 +78,5 @@
 <h2>📌 Notes</h2>
 <ul>
     <li><strong>Flashback</strong>: Carts will appear stuttering during recorded replay playback.</li>
-    <li><strong>Debugify</strong>: Enabling the fix for <strong>MC-259512</strong> causes the cart to stutter while turning (Debugify right now mistakenly shows the tooltip "Increased input delay when riding an entity", while it should be "Horizontal camera rotation lags when riding").</li>
     <li><strong>A Friendly Reminder</strong>: Please drive safe and build a smooth path or track for a better journey!</li>
 </ul>

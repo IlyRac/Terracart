@@ -57,11 +57,6 @@ public class TerracartPhysics {
                 cart.setYRot(cart.getYRot() + turn);
             }
 
-            if (Math.abs(Mth.wrapDegrees(cart.getYRot() - cart.yRotO)) > 0.0001F) {
-                player.setYRot(player.getYRot() + Mth.wrapDegrees(cart.getYRot() - cart.yRotO));
-                player.yRotO = player.getYRot();
-            }
-
             // 4. Continue applying directional momentum using currentSpeed while coasting
             float rad = (float) Math.toRadians(cart.getYRot());
             return new Vec3(-Math.sin(rad) * currentSpeed, motion.y, Math.cos(rad) * currentSpeed);
