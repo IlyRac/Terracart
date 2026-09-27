@@ -25,11 +25,21 @@ public class TerracartPhysics {
 
         if (cart.isInWater() || cart.isInLava()) {
             double factor = cart.isInLava() ? 0.12 : 0.06;
-            cart.setCurrentSpeed(Mth.lerp(factor, cart.getCurrentSpeed(), 0.0));
+            double newSpeed = Mth.lerp(factor, cart.getCurrentSpeed(), 0.0);
+
+            if (Math.abs(newSpeed) < 0.05) {
+                newSpeed = 0.0;
+            }
+
+            cart.setCurrentSpeed(newSpeed);
             Vec3 horiz = new Vec3(motion.x, 0.0, motion.z).scale(Math.max(0.0, 1.0 - factor));
+
+            if (newSpeed == 0.0) {
+                horiz = Vec3.ZERO;
+            }
+
             return new Vec3(horiz.x, Math.max(motion.y, -0.6) * 0.85, horiz.z);
         }
-
         double currentSpeed = cart.getCurrentSpeed();
 
         // 1. Check if a player is riding

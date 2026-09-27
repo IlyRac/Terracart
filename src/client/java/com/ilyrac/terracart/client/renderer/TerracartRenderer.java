@@ -14,7 +14,6 @@ import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.EntityAttachment;
-import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.phys.EntityHitResult;
 import org.jspecify.annotations.NonNull;
 
@@ -46,14 +45,14 @@ public class TerracartRenderer extends EntityRenderer<TerracartEntity, Terracart
         float steeringDegrees = 0.0F;
         float groundWheelDegrees = 0.0F;
 
-        if (entity.getControllingPassenger() instanceof LivingEntity rider) {
-            if (rider.xxa > 0.0F) {
-                steeringDegrees = -15.0F;
-                groundWheelDegrees = -10.75F;
-            } else if (rider.xxa < 0.0F) {
-                steeringDegrees = 15.0F;
-                groundWheelDegrees = 10.75F;
-            }
+        float strafe = entity.getSyncedStrafe();
+
+        if (strafe < 0.0F) {
+            steeringDegrees = -15.0F;
+            groundWheelDegrees = -10.75F;
+        } else if (strafe > 0.0F) {
+            steeringDegrees = 15.0F;
+            groundWheelDegrees = 10.75F;
         }
 
         // Convert raw angles to standard Radians

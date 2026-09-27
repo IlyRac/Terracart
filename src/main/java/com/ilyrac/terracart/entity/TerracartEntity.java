@@ -60,6 +60,7 @@ public class TerracartEntity extends VehicleEntity {
     public void setDriverInput(float fwd, float str) {
         this.driverForward = Mth.clamp(fwd, -1.0f, 1.0f);
         this.driverStrafe = Mth.clamp(str, -1.0f, 1.0f);
+        this.entityData.set(WHEEL_TURNING, this.driverStrafe);
     }
     public float getDriverForward() { return driverForward; }
     public float getDriverStrafe() { return driverStrafe; }
@@ -87,6 +88,7 @@ public class TerracartEntity extends VehicleEntity {
     // --- 5. WHEELS & COSMETICS ---
     private static final EntityDataAccessor<Integer> CART_COLOR = SynchedEntityData.defineId(TerracartEntity.class, EntityDataSerializers.INT);
     private static final EntityDataAccessor<Float> WHEEL_ROTATION = SynchedEntityData.defineId(TerracartEntity.class, EntityDataSerializers.FLOAT);
+    public static final EntityDataAccessor<Float> WHEEL_TURNING = SynchedEntityData.defineId(TerracartEntity.class, EntityDataSerializers.FLOAT);
     private float prevWheelRotation = 0.0f;
 
     public void setCartColor(int color) { this.entityData.set(CART_COLOR, color < 0 ? -1 : Math.min(15, color)); }
@@ -116,7 +118,7 @@ public class TerracartEntity extends VehicleEntity {
         super.defineSynchedData(builder);
         builder.define(CART_COLOR, -1).define(FUEL_TICKS, 1200).define(WHEEL_ROTATION, 0.0f)
                 .define(SOUND_ACTIVE, false).define(SOUND_VOLUME, 0.0f).define(SOUND_PITCH, 1.0f)
-                .define(CURRENT_HEALTH, MAX_HEALTH);
+                .define(CURRENT_HEALTH, MAX_HEALTH).define(WHEEL_TURNING, 0.0f);
     }
 
     @Override
@@ -127,6 +129,10 @@ public class TerracartEntity extends VehicleEntity {
     @Override
     protected void readAdditionalSaveData(@NonNull ValueInput in) {
         setCartColor(in.getIntOr("CartColor", -1)); setFuel(in.getIntOr("FuelTicks", 0)); setHealth(in.getFloatOr("Health", MAX_HEALTH));
+    }
+
+    public float getSyncedStrafe() {
+        return this.entityData.get(WHEEL_TURNING);
     }
 
     // ================================================================================================================
