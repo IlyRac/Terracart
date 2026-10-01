@@ -25,7 +25,7 @@ public class ModEntities {
                             .of(TerracartEntity::new, MobCategory.MISC)
                             .sized(3.1F, 1.2F)
                             .clientTrackingRange(8)
-                            .updateInterval(3)
+                            .updateInterval(1)
                             .nameTagOffset(2.0f)
                             .build(TERRACART_KEY)
             );

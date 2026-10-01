@@ -44,8 +44,12 @@ public class TerracartPhysics {
 
         // 1. Check if a player is riding
         if (cart.getControllingPassenger() instanceof Player player) {
-            float forward = cart.level().isClientSide() ? player.zza : cart.getDriverForward();
-            float strafe = cart.level().isClientSide() ? -player.xxa : cart.getDriverStrafe();
+
+            // PHYSICS FIX: Only read raw keyboard input if we are the true, live local driver.
+            // If we are a Flashback dummy observer, read the Synced network data instead!
+            boolean isLiveDriver = cart.level().isClientSide() && player.isLocalPlayer();
+            float forward = isLiveDriver ? player.zza : cart.getSyncedForward();
+            float strafe = isLiveDriver ? -player.xxa : cart.getSyncedStrafe();
 
             // 2. Only allow acceleration if the tank has fuel!
             if (cart.hasFuel()) {

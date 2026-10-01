@@ -46,8 +46,6 @@ public class TerracartEntity extends VehicleEntity {
     public float getFuelPercent() { return (float) this.getFuel() / (float) MAX_FUEL; }
 
     // --- 3. DRIVER INPUTS & LOCAL PHYSICS TRACKERS ---
-    private float driverForward = 0.0f;
-    private float driverStrafe = 0.0f;
     private double currentSpeed = 0.0;
     private float speedBps = 0.0F;
     private Vec3 lastPos = Vec3.ZERO;
@@ -55,15 +53,12 @@ public class TerracartEntity extends VehicleEntity {
     private double lastZ;
     private boolean wasAirborne = false;
     private double airborneStartY = 0.0;
-    private boolean isFirstTick = true; // Add this field near other trackers
+    private boolean isFirstTick = true;
 
     public void setDriverInput(float fwd, float str) {
-        this.driverForward = Mth.clamp(fwd, -1.0f, 1.0f);
-        this.driverStrafe = Mth.clamp(str, -1.0f, 1.0f);
-        this.entityData.set(WHEEL_TURNING, this.driverStrafe);
+        this.entityData.set(DRIVER_FORWARD, Mth.clamp(fwd, -1.0f, 1.0f));
+        this.entityData.set(WHEEL_TURNING, Mth.clamp(str, -1.0f, 1.0f));
     }
-    public float getDriverForward() { return driverForward; }
-    public float getDriverStrafe() { return driverStrafe; }
 
     public double getCurrentSpeed() { return currentSpeed; }
     public void setCurrentSpeed(double speed) { this.currentSpeed = speed; }
@@ -74,28 +69,26 @@ public class TerracartEntity extends VehicleEntity {
     public double getAirborneStartY() { return airborneStartY; }
     public void setAirborneStartY(double y) { this.airborneStartY = y; }
 
-    // --- 4. ENGINE AUDIO STATES ---
+    // --- 4. AUDIO & COSMETICS ---
     public static final EntityDataAccessor<Boolean> SOUND_ACTIVE = SynchedEntityData.defineId(TerracartEntity.class, EntityDataSerializers.BOOLEAN);
     public static final EntityDataAccessor<Float> SOUND_VOLUME = SynchedEntityData.defineId(TerracartEntity.class, EntityDataSerializers.FLOAT);
     public static final EntityDataAccessor<Float> SOUND_PITCH = SynchedEntityData.defineId(TerracartEntity.class, EntityDataSerializers.FLOAT);
+    private static final EntityDataAccessor<Integer> CART_COLOR = SynchedEntityData.defineId(TerracartEntity.class, EntityDataSerializers.INT);
+    private static final EntityDataAccessor<Float> WHEEL_ROTATION = SynchedEntityData.defineId(TerracartEntity.class, EntityDataSerializers.FLOAT);
+    public static final EntityDataAccessor<Float> WHEEL_TURNING = SynchedEntityData.defineId(TerracartEntity.class, EntityDataSerializers.FLOAT);
+    public static final EntityDataAccessor<Float> DRIVER_FORWARD = SynchedEntityData.defineId(TerracartEntity.class, EntityDataSerializers.FLOAT);
 
+    private float prevWheelRotation = 0.0f;
+
+    public void setCartColor(int color) { this.entityData.set(CART_COLOR, color < 0 ? -1 : Math.min(15, color)); }
+    public int getCartColor() { return this.entityData.get(CART_COLOR); }
+    public float getWheelRotation() { return this.entityData.get(WHEEL_ROTATION); }
+    public float getPrevWheelRotation() { return this.prevWheelRotation; }
     public void setSoundActive(boolean active) { this.entityData.set(SOUND_ACTIVE, active); }
     public float getSoundVolume() { return this.entityData.get(SOUND_VOLUME); }
     public void setSoundVolume(float volume) { this.entityData.set(SOUND_VOLUME, volume); }
     public float getSoundPitch() { return this.entityData.get(SOUND_PITCH); }
     public void setSoundPitch(float pitch) { this.entityData.set(SOUND_PITCH, pitch); }
-
-    // --- 5. WHEELS & COSMETICS ---
-    private static final EntityDataAccessor<Integer> CART_COLOR = SynchedEntityData.defineId(TerracartEntity.class, EntityDataSerializers.INT);
-    private static final EntityDataAccessor<Float> WHEEL_ROTATION = SynchedEntityData.defineId(TerracartEntity.class, EntityDataSerializers.FLOAT);
-    public static final EntityDataAccessor<Float> WHEEL_TURNING = SynchedEntityData.defineId(TerracartEntity.class, EntityDataSerializers.FLOAT);
-    private float prevWheelRotation = 0.0f;
-
-    public void setCartColor(int color) { this.entityData.set(CART_COLOR, color < 0 ? -1 : Math.min(15, color)); }
-    public int getCartColor() { return this.entityData.get(CART_COLOR); }
-
-    public float getWheelRotation() { return this.entityData.get(WHEEL_ROTATION); }
-    public float getPrevWheelRotation() { return this.prevWheelRotation; }
 
     // --- 6. ACTION & RISK COOLDOWNS ---
     private int hitCooldown = 0;
@@ -106,6 +99,7 @@ public class TerracartEntity extends VehicleEntity {
     public void setHitCooldown(int cooldown) { this.hitCooldown = cooldown; }
     public int getFireCooldown() { return fireCooldown; }
     public void setFireCooldown(int cooldown) { this.fireCooldown = cooldown; }
+    public float getSyncedForward() { return this.entityData.get(DRIVER_FORWARD); }
 
     public TerracartEntity(EntityType<? extends TerracartEntity> type, Level level) {
         super(type, level);
@@ -118,7 +112,7 @@ public class TerracartEntity extends VehicleEntity {
         super.defineSynchedData(builder);
         builder.define(CART_COLOR, -1).define(FUEL_TICKS, 1200).define(WHEEL_ROTATION, 0.0f)
                 .define(SOUND_ACTIVE, false).define(SOUND_VOLUME, 0.0f).define(SOUND_PITCH, 1.0f)
-                .define(CURRENT_HEALTH, MAX_HEALTH).define(WHEEL_TURNING, 0.0f);
+                .define(CURRENT_HEALTH, MAX_HEALTH).define(WHEEL_TURNING, 0.0f).define(DRIVER_FORWARD, 0.0f);
     }
 
     @Override
@@ -141,7 +135,10 @@ public class TerracartEntity extends VehicleEntity {
 
     @Override
     public void tick() {
-        // 1. Cache state first
+        // 1. CRITICAL RENDER FIX: Cache history BEFORE any movement.
+        // This stops the passenger from visually floating behind the cart.
+        this.setOldPosAndRot();
+
         this.yRotO = this.getYRot();
         this.xRotO = this.getXRot();
         this.prevWheelRotation = this.getWheelRotation();
@@ -164,7 +161,7 @@ public class TerracartEntity extends VehicleEntity {
 
         TerracartStateManager.handleHazards(this);
 
-        // 2. Execute physics (this changes getYRot)
+        // 2. Execute Universal Physics
         Vec3 motion = TerracartPhysics.applyControllerInput(this, TerracartPhysics.applyGravity(this, this.getDeltaMovement()));
         this.setDeltaMovement(motion);
         this.move(MoverType.SELF, motion);
@@ -187,7 +184,6 @@ public class TerracartEntity extends VehicleEntity {
 
         lastX = this.getX(); lastZ = this.getZ();
 
-        // 3. FINALLY, call super.tick() so passengers are positioned using the NEW rotation delta
         super.tick();
     }
 
