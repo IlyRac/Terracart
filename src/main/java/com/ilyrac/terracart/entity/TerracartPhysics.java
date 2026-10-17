@@ -21,7 +21,10 @@ public class TerracartPhysics {
     }
 
     public static Vec3 applyControllerInput(TerracartEntity cart, Vec3 motion) {
-        final double MAX_SPEED = 1.0, ACCEL = 0.005, FRICTION = 0.97;
+        // Top speed is mapped directly from the core's BPS stat (17 to 25 blocks per second)
+        double topSpeedBps = cart.getCoreStats().maxSpeed();
+        double maxSpeed = topSpeedBps / 20.0;
+        final double ACCEL = 0.005, FRICTION = 0.97;
 
         if (cart.isInWater() || cart.isInLava()) {
             double factor = cart.isInLava() ? 0.12 : 0.06;
@@ -61,13 +64,13 @@ public class TerracartPhysics {
                 currentSpeed *= FRICTION;
             }
 
-            currentSpeed = Mth.clamp(currentSpeed, -MAX_SPEED, MAX_SPEED);
+            currentSpeed = Mth.clamp(currentSpeed, -maxSpeed, maxSpeed);
             if (Math.abs(currentSpeed) < 0.001) currentSpeed = 0.0;
             cart.setCurrentSpeed(currentSpeed);
 
             // 3. Turning Logic: Allow steering while coasting until the cart comes to a complete halt
             if (Math.abs(currentSpeed) > 0.01 && strafe != 0) {
-                float turn = 7.5F * strafe * (0.3F + 0.7F * (1.0F - Math.min((float) (Math.abs(currentSpeed) / MAX_SPEED), 1.0F)));
+                float turn = 7.5F * strafe * (0.3F + 0.7F * (1.0F - Math.min((float) (Math.abs(currentSpeed) / maxSpeed), 1.0F)));
                 cart.setYRot(cart.getYRot() + turn);
             }
 

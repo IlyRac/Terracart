@@ -77,9 +77,13 @@ public class TerracartStateManager {
         cart.kill(level);
         if (!level.getGameRules().get(GameRules.ENTITY_DROPS)) return;
 
-        spawnDrop(level, cart, new ItemStack(Items.IRON_INGOT, 3 + cart.getRandom().nextInt(5)));
+        spawnDrop(level, cart, new ItemStack(Items.IRON_INGOT, 2 + cart.getRandom().nextInt(3)));
         spawnDrop(level, cart, new ItemStack(ModItems.TERRRACART_WHEEL));
-        spawnDrop(level, cart, new ItemStack(Items.FURNACE));
+
+        // Calibrated Tier Core retaining exact rolled stats from the vehicle
+        ItemStack coreStack = new ItemStack(ModItems.getCoreItemFor(cart.getTier()));
+        coreStack.set(com.ilyrac.terracart.component.ModDataComponents.CORE_STATS, cart.getCoreStats());
+        spawnDrop(level, cart, coreStack);
     }
 
     private static void spawnDrop(ServerLevel level, Entity entity, ItemStack stack) {

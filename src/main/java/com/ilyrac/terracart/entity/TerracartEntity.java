@@ -1,5 +1,6 @@
 package com.ilyrac.terracart.entity;
 
+import com.ilyrac.terracart.tier.TerracartTier;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.syncher.EntityDataAccessor;
 import net.minecraft.network.syncher.EntityDataSerializers;
@@ -28,22 +29,49 @@ public class TerracartEntity extends VehicleEntity {
     //    DATA MANAGEMENT (STATE, SYNCS, GETTERS & SETTERS)
     // ================================================================================================================
 
+    // --- 0. ENGINE CORE STATS ---
+    private static final EntityDataAccessor<Float> CORE_MAX_SPEED = SynchedEntityData.defineId(TerracartEntity.class, EntityDataSerializers.FLOAT);
+    private static final EntityDataAccessor<Integer> CORE_MAX_FUEL = SynchedEntityData.defineId(TerracartEntity.class, EntityDataSerializers.INT);
+    private static final EntityDataAccessor<Integer> CORE_MAX_CONDITION = SynchedEntityData.defineId(TerracartEntity.class, EntityDataSerializers.INT);
+
+    public com.ilyrac.terracart.component.TerracartCoreStats getCoreStats() {
+        return new com.ilyrac.terracart.component.TerracartCoreStats(
+                this.entityData.get(CORE_MAX_SPEED),
+                this.entityData.get(CORE_MAX_FUEL),
+                this.entityData.get(CORE_MAX_CONDITION)
+        );
+    }
+
+    public void setCoreStats(com.ilyrac.terracart.component.TerracartCoreStats stats) {
+        this.entityData.set(CORE_MAX_SPEED, stats.maxSpeed());
+        this.entityData.set(CORE_MAX_FUEL, stats.maxFuel());
+        this.entityData.set(CORE_MAX_CONDITION, stats.maxCondition());
+    }
+
+    public float getMaxHealth() {
+        int condition = this.entityData.get(CORE_MAX_CONDITION);
+        return condition > 0 ? (float) condition : 100.0f;
+    }
+
+    public int getMaxFuel() {
+        int fuelStat = this.entityData.get(CORE_MAX_FUEL);
+        return fuelStat > 0 ? fuelStat * 240 : 24000;
+    }
+
     // --- 1. HEALTH SYSTEM ---
     private static final EntityDataAccessor<Float> CURRENT_HEALTH = SynchedEntityData.defineId(TerracartEntity.class, EntityDataSerializers.FLOAT);
 
-    public static final float MAX_HEALTH = 100.0f;
     public float getHealth() { return this.entityData.get(CURRENT_HEALTH); }
-    public void setHealth(float hp) { this.entityData.set(CURRENT_HEALTH, Mth.clamp(hp, 0.0f, MAX_HEALTH)); }
-    public float getHealthPercent() { return this.getHealth() / MAX_HEALTH; }
+    public void setHealth(float hp) { this.entityData.set(CURRENT_HEALTH, Mth.clamp(hp, 0.0f, this.getMaxHealth())); }
+    public float getHealthPercent() { return this.getHealth() / this.getMaxHealth(); }
 
     // --- 2. FUEL SYSTEM ---
-    public static final int MAX_FUEL = 24000;
     private static final EntityDataAccessor<Integer> FUEL_TICKS = SynchedEntityData.defineId(TerracartEntity.class, EntityDataSerializers.INT);
 
     public int getFuel() { return this.entityData.get(FUEL_TICKS); }
-    public void setFuel(int ticks) { this.entityData.set(FUEL_TICKS, ticks); }
+    public void setFuel(int ticks) { this.entityData.set(FUEL_TICKS, Math.min(ticks, this.getMaxFuel())); }
     public boolean hasFuel() { return this.getFuel() > 0; }
-    public float getFuelPercent() { return (float) this.getFuel() / (float) MAX_FUEL; }
+    public float getFuelPercent() { return (float) this.getFuel() / (float) this.getMaxFuel(); }
 
     // --- 3. DRIVER INPUTS & LOCAL PHYSICS TRACKERS ---
     private double currentSpeed = 0.0;
@@ -90,6 +118,13 @@ public class TerracartEntity extends VehicleEntity {
     public float getSoundPitch() { return this.entityData.get(SOUND_PITCH); }
     public void setSoundPitch(float pitch) { this.entityData.set(SOUND_PITCH, pitch); }
 
+    public TerracartTier getTier() {
+        if (this.getType() == ModEntities.SWIFT_TERRACART) return TerracartTier.SWIFT;
+        if (this.getType() == ModEntities.STURDY_TERRACART) return TerracartTier.STURDY;
+        if (this.getType() == ModEntities.PRIME_TERRACART) return TerracartTier.PRIME;
+        return TerracartTier.STANDARD;
+    }
+
     // --- 6. ACTION & RISK COOLDOWNS ---
     private int hitCooldown = 0;
     private int fireCooldown = 0;
@@ -105,24 +140,57 @@ public class TerracartEntity extends VehicleEntity {
         super(type, level);
         this.lastX = this.getX(); this.lastZ = this.getZ();
         this.yRotO = this.getYRot(); this.xRotO = this.getXRot();
+        TerracartTier tier = this.getTier();
+        this.setCoreStats(com.ilyrac.terracart.component.TerracartCoreStats.forRandomTier(tier, this.random));
+        this.setHealth(this.getMaxHealth());
+        int startFuel = 5 + this.random.nextInt(11); // 5 to 15 FU
+        this.setFuel(startFuel * 240);
     }
+
 
     @Override
     protected void defineSynchedData(SynchedEntityData.@NonNull Builder builder) {
         super.defineSynchedData(builder);
-        builder.define(CART_COLOR, -1).define(FUEL_TICKS, 1200).define(WHEEL_ROTATION, 0.0f)
-                .define(SOUND_ACTIVE, false).define(SOUND_VOLUME, 0.0f).define(SOUND_PITCH, 1.0f)
-                .define(CURRENT_HEALTH, MAX_HEALTH).define(WHEEL_TURNING, 0.0f).define(DRIVER_FORWARD, 0.0f);
+        builder.define(CORE_MAX_SPEED, 20.0f)
+                .define(CORE_MAX_FUEL, 100)
+                .define(CORE_MAX_CONDITION, 100)
+                .define(CART_COLOR, -1)
+                .define(FUEL_TICKS, 24000)
+                .define(WHEEL_ROTATION, 0.0f)
+                .define(SOUND_ACTIVE, false)
+                .define(SOUND_VOLUME, 0.0f)
+                .define(SOUND_PITCH, 1.0f)
+                .define(CURRENT_HEALTH, 100.0f)
+                .define(WHEEL_TURNING, 0.0f)
+                .define(DRIVER_FORWARD, 0.0f);
     }
 
     @Override
     protected void addAdditionalSaveData(@NonNull ValueOutput out) {
-        out.putInt("CartColor", getCartColor()); out.putInt("FuelTicks", getFuel()); out.putFloat("Health", getHealth());
+        out.putInt("CartColor", getCartColor());
+        out.putInt("FuelTicks", getFuel());
+        out.putFloat("Health", getHealth());
+        out.putFloat("CoreSpeed", this.entityData.get(CORE_MAX_SPEED));
+        out.putInt("CoreFuel", this.entityData.get(CORE_MAX_FUEL));
+        out.putInt("CoreCondition", this.entityData.get(CORE_MAX_CONDITION));
     }
 
     @Override
     protected void readAdditionalSaveData(@NonNull ValueInput in) {
-        setCartColor(in.getIntOr("CartColor", -1)); setFuel(in.getIntOr("FuelTicks", 0)); setHealth(in.getFloatOr("Health", MAX_HEALTH));
+        setCartColor(in.getIntOr("CartColor", -1));
+        float coreSpeed = in.getFloatOr("CoreSpeed", 0.0f);
+        if (coreSpeed > 0.0f) {
+            setCoreStats(new com.ilyrac.terracart.component.TerracartCoreStats(
+                    coreSpeed,
+                    in.getIntOr("CoreFuel", 100),
+                    in.getIntOr("CoreCondition", 100)
+            ));
+        } else {
+            // Legacy cart or summon without stats: roll random stats within tier range!
+            setCoreStats(com.ilyrac.terracart.component.TerracartCoreStats.forRandomTier(this.getTier(), this.random));
+        }
+        setFuel(in.getIntOr("FuelTicks", this.getMaxFuel()));
+        setHealth(in.getFloatOr("Health", this.getMaxHealth()));
     }
 
     public float getSyncedStrafe() {

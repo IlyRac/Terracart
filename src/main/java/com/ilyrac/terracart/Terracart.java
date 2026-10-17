@@ -1,5 +1,6 @@
 package com.ilyrac.terracart;
 
+import com.ilyrac.terracart.component.ModDataComponents;
 import com.ilyrac.terracart.entity.ModEntities;
 import com.ilyrac.terracart.item.ModItems;
 import com.ilyrac.terracart.network.TerracartInputPayload;
@@ -13,6 +14,7 @@ public class Terracart implements ModInitializer {
 
 	@Override
 	public void onInitialize() {
+		ModDataComponents.initialize();
 		TerracartInputPayload.initialize();
 		ModItems.initialize();
 		ModEntities.initialize();

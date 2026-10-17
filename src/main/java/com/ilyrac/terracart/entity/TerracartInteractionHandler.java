@@ -12,7 +12,10 @@ import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.world.item.DyeColor;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 
@@ -39,37 +42,96 @@ public class TerracartInteractionHandler {
             }
         }
 
-        // 1. Repair Mechanic
+        // 1. Repair Mechanic (+25 HP fixed point)
         if (stack.is(Items.IRON_INGOT)) {
-            if (cart.getHealth() >= TerracartEntity.MAX_HEALTH) {
+            if (cart.getHealth() >= cart.getMaxHealth()) {
                 player.sendOverlayMessage(Component.literal("Terracart is already fully repaired."));
                 return InteractionResult.SUCCESS;
             }
-            cart.setHealth(cart.getHealth() + (TerracartEntity.MAX_HEALTH * 0.25f));
+            cart.setHealth(cart.getHealth() + 25.0f);
             playSpecialEffect(cart, ModSounds.TERRACART_REPAIR, ParticleTypes.EGG_CRACK, 12);
             if (!player.isCreative()) stack.shrink(1);
-            player.sendOverlayMessage(Component.literal("Terracart repaired (+25%)"));
+            player.sendOverlayMessage(Component.literal("Terracart repaired (+25 HP)"));
             return InteractionResult.SUCCESS;
         }
 
-        // 2. Refueling Mechanic
-        if (stack.is(Items.COAL)) {
-            if (cart.getFuel() > (TerracartEntity.MAX_FUEL * 0.90)) {
+        // 2. Refueling Mechanic (+25 FU fixed point = 25 * 240 ticks)
+        if (stack.is(Items.COAL) || stack.is(Items.CHARCOAL)) {
+            if (cart.getFuel() >= cart.getMaxFuel()) {
                 player.sendOverlayMessage(Component.literal("Fuel tank is already full!"));
                 return InteractionResult.SUCCESS;
             }
-            if (cart.getFuel() > (TerracartEntity.MAX_FUEL * 0.80)) {
-                player.sendOverlayMessage(Component.literal("Fuel tank is nearly full!"));
-                return InteractionResult.SUCCESS;
-            }
-            cart.setFuel(Math.min(cart.getFuel() + (int) (TerracartEntity.MAX_FUEL * 0.25), TerracartEntity.MAX_FUEL));
+            cart.setFuel(cart.getFuel() + (25 * 240));
             playSpecialEffect(cart, ModSounds.TERRACART_REFUEL, ParticleTypes.CAMPFIRE_COSY_SMOKE, 6);
             if (!player.isCreative()) stack.shrink(1);
-            player.sendOverlayMessage(Component.literal("TerraCart refueled (+25%)"));
+            player.sendOverlayMessage(Component.literal("Terracart refueled (+25 FU)"));
             return InteractionResult.SUCCESS;
         }
 
-        // 3. Mount Passenger
+        // 3. Paint Stripping with Wet Sponge
+        if (stack.is(Items.WET_SPONGE)) {
+            if (cart.getCartColor() == -1) {
+                if (!cart.level().isClientSide()) {
+                    player.sendOverlayMessage(Component.literal("Terracart is already in factory paint."));
+                }
+                return InteractionResult.SUCCESS;
+            }
+
+            if (!cart.level().isClientSide()) {
+                cart.setCartColor(-1);
+                playSpecialEffect(cart, SoundEvents.BUCKET_EMPTY, ParticleTypes.SPLASH, 16);
+
+                // Both Creative and Survival: Wet Sponge turns into Dry Sponge
+                if (stack.getCount() == 1) {
+                    player.setItemInHand(hand, new ItemStack(Items.SPONGE));
+                } else {
+                    stack.shrink(1);
+                    ItemStack drySponge = new ItemStack(Items.SPONGE);
+                    if (!player.getInventory().add(drySponge)) {
+                        if (cart.level() instanceof ServerLevel sl) {
+                            sl.addFreshEntity(new ItemEntity(sl, player.getX(), player.getY(), player.getZ(), drySponge));
+                        }
+                    }
+                }
+                player.sendOverlayMessage(Component.literal("Paint stripped back to factory gray."));
+            }
+            return InteractionResult.SUCCESS;
+        }
+
+        // 4. Painting with Dye
+        DyeColor dyeColor = stack.get(DataComponents.DYE);
+        if (dyeColor != null) {
+            // Must strip existing paint first
+            if (cart.getCartColor() != -1) {
+                if (!cart.level().isClientSide()) {
+                    player.sendOverlayMessage(Component.literal("Strip the existing paint with a Wet Sponge first!"));
+                }
+                return InteractionResult.SUCCESS;
+            }
+
+            // Cannot apply Gray Dye to default factory paint (which is already gray)
+            if (dyeColor == DyeColor.GRAY) {
+                if (!cart.level().isClientSide()) {
+                    player.sendOverlayMessage(Component.literal("This Terracart is already in its default factory gray!"));
+                }
+                return InteractionResult.SUCCESS;
+            }
+
+            if (!cart.level().isClientSide()) {
+                cart.setCartColor(dyeColor.getId());
+                playSpecialEffect(cart, SoundEvents.DYE_USE, ParticleTypes.WAX_ON, 12);
+                if (!player.isCreative()) {
+                    stack.shrink(1);
+                }
+                String colorName = dyeColor.getName().replace('_', ' ');
+                String formattedColor = Character.toUpperCase(colorName.charAt(0)) + colorName.substring(1);
+                player.sendOverlayMessage(Component.literal("Terracart painted " + formattedColor + "."));
+            }
+            return InteractionResult.SUCCESS;
+        }
+
+        // 5. Mount Passenger
+
         if (cart.canAddPassenger(player) && cart.getPassengers().isEmpty()) {
             if (!cart.level().isClientSide()) {
                 player.startRiding(cart);
@@ -109,10 +171,8 @@ public class TerracartInteractionHandler {
 
     // Moved from TerracartEntity
     public static ItemStack handlePickResult(TerracartEntity cart) {
-        int color = cart.getCartColor();
-        if (color >= 0 && color < ModItems.COLORED_TERRACARTS.length) {
-            return new ItemStack(ModItems.COLORED_TERRACARTS[color]);
-        }
-        return new ItemStack(ModItems.TERRACART);
+        ItemStack stack = new ItemStack(ModItems.getCartItemFor(cart.getTier()));
+        stack.set(com.ilyrac.terracart.component.ModDataComponents.CORE_STATS, cart.getCoreStats());
+        return stack;
     }
 }

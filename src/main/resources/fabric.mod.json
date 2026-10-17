@@ -20,6 +20,9 @@
 	"icon": "assets/terracart/icon.png",
 	"environment": "*",
 	"entrypoints": {
+		"fabric-datagen": [
+			"com.ilyrac.terracart.client.TerracartDataGenerator"
+		],
 		"main": [
 			"com.ilyrac.terracart.Terracart"
 		],

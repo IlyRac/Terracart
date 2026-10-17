@@ -22,16 +22,22 @@ public class TerracartClient implements ClientModInitializer {
 	@Override
 	public void onInitializeClient() {
 		// --- 1. REGISTER RENDERERS & MODELS ---
-		//noinspection deprecation
-		EntityRendererRegistry.register(
-				ModEntities.TERRACART,
-				TerracartRenderer::new
-		);
+		EntityRendererRegistry.register(ModEntities.STANDARD_TERRACART, TerracartRenderer::new);
+		EntityRendererRegistry.register(ModEntities.SWIFT_TERRACART, TerracartRenderer::new);
+		EntityRendererRegistry.register(ModEntities.STURDY_TERRACART, TerracartRenderer::new);
+		EntityRendererRegistry.register(ModEntities.PRIME_TERRACART, TerracartRenderer::new);
 
-		ModelLayerRegistry.registerModelLayer(
-				TerracartModel.LAYER,
-				TerracartModel::createBodyLayer
-		);
+		// Base Model Layers
+		ModelLayerRegistry.registerModelLayer(TerracartModel.STANDARD_LAYER, TerracartModel::createStandardBaseLayer);
+		ModelLayerRegistry.registerModelLayer(TerracartModel.SWIFT_LAYER, TerracartModel::createSwiftBaseLayer);
+		ModelLayerRegistry.registerModelLayer(TerracartModel.STURDY_LAYER, TerracartModel::createSturdyBaseLayer);
+		ModelLayerRegistry.registerModelLayer(TerracartModel.PRIME_LAYER, TerracartModel::createPrimeBaseLayer);
+
+		// Overlay Model Layers (Panels)
+		ModelLayerRegistry.registerModelLayer(TerracartModel.STANDARD_OVERLAY_LAYER, TerracartModel::createStandardOverlayLayer);
+		ModelLayerRegistry.registerModelLayer(TerracartModel.SWIFT_OVERLAY_LAYER, TerracartModel::createSwiftOverlayLayer);
+		ModelLayerRegistry.registerModelLayer(TerracartModel.STURDY_OVERLAY_LAYER, TerracartModel::createSturdyOverlayLayer);
+		ModelLayerRegistry.registerModelLayer(TerracartModel.PRIME_OVERLAY_LAYER, TerracartModel::createPrimeOverlayLayer);
 
 		// --- 2. REGISTER HUD ELEMENTS ---
 		HudElementRegistry.attachElementAfter(

@@ -1,0 +1,19 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "key": {
+    "C": "terracart:swift_terracart_core",
+    "G": "minecraft:glass_pane",
+    "I": "minecraft:iron_ingot",
+    "M": "minecraft:minecart",
+    "S": "minecraft:saddle",
+    "W": "terracart:terracart_wheel"
+  },
+  "pattern": [
+    "WSW",
+    "CMG",
+    "WIW"
+  ],
+  "result": {
+    "id": "terracart:swift_terracart"
+  }
+}
