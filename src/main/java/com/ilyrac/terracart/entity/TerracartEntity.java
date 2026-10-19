@@ -1,7 +1,10 @@
 package com.ilyrac.terracart.entity;
 
+import com.ilyrac.terracart.ModSounds;
 import com.ilyrac.terracart.tier.TerracartTier;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.particles.DustParticleOptions;
+import net.minecraft.sounds.SoundSource;
 import net.minecraft.network.syncher.EntityDataAccessor;
 import net.minecraft.network.syncher.EntityDataSerializers;
 import net.minecraft.network.syncher.SynchedEntityData;
@@ -83,8 +86,19 @@ public class TerracartEntity extends VehicleEntity {
     private double airborneStartY = 0.0;
     private boolean isFirstTick = true;
 
+    private float prevForwardInput = 0.0f;
+
     public void setDriverInput(float fwd, float str) {
-        this.entityData.set(DRIVER_FORWARD, Mth.clamp(fwd, -1.0f, 1.0f));
+        float clampedFwd = Mth.clamp(fwd, -1.0f, 1.0f);
+        if (!this.hasFuel() && Math.abs(clampedFwd) > 0.1f && Math.abs(this.prevForwardInput) <= 0.1f && !this.level().isClientSide()) {
+            this.level().playSound(null, this.getX(), this.getY(), this.getZ(),
+                    ModSounds.TERRACART_OUT_OF_FUEL, SoundSource.NEUTRAL, 0.8f, 1.0f);
+            if (this.level() instanceof ServerLevel sl) {
+                TerracartStateManager.spawnPerimeterParticles(sl, this, new DustParticleOptions(0x111111, 1.2f), 28, 0.03);
+            }
+        }
+        this.prevForwardInput = clampedFwd;
+        this.entityData.set(DRIVER_FORWARD, clampedFwd);
         this.entityData.set(WHEEL_TURNING, Mth.clamp(str, -1.0f, 1.0f));
     }
 
@@ -113,6 +127,7 @@ public class TerracartEntity extends VehicleEntity {
     public float getWheelRotation() { return this.entityData.get(WHEEL_ROTATION); }
     public float getPrevWheelRotation() { return this.prevWheelRotation; }
     public void setSoundActive(boolean active) { this.entityData.set(SOUND_ACTIVE, active); }
+    public boolean isSoundActive() { return this.entityData.get(SOUND_ACTIVE); }
     public float getSoundVolume() { return this.entityData.get(SOUND_VOLUME); }
     public void setSoundVolume(float volume) { this.entityData.set(SOUND_VOLUME, volume); }
     public float getSoundPitch() { return this.entityData.get(SOUND_PITCH); }
@@ -128,7 +143,6 @@ public class TerracartEntity extends VehicleEntity {
     // --- 6. ACTION & RISK COOLDOWNS ---
     private int hitCooldown = 0;
     private int fireCooldown = 0;
-    private int MovingSoundCooldown = 0;
 
     public int getHitCooldown() { return hitCooldown; }
     public void setHitCooldown(int cooldown) { this.hitCooldown = cooldown; }
@@ -223,7 +237,6 @@ public class TerracartEntity extends VehicleEntity {
         lastPos = this.position();
 
         TerracartStateManager.burnFuel(this);
-        if (MovingSoundCooldown > 0) MovingSoundCooldown--;
         if (hitCooldown > 0) hitCooldown--;
         if (fireCooldown > 0) fireCooldown--;
 

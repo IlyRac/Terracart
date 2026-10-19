@@ -1,9 +1,16 @@
 package com.ilyrac.terracart.entity;
 
+import com.ilyrac.terracart.ModSounds;
 import com.ilyrac.terracart.item.ModItems;
+import com.ilyrac.terracart.tier.TerracartTier;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.particles.DustParticleOptions;
+import net.minecraft.core.particles.ItemParticleOption;
+import net.minecraft.core.particles.ParticleOptions;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.item.ItemEntity;
@@ -20,6 +27,13 @@ public class TerracartStateManager {
         boolean isMoving = cart.getDeltaMovement().horizontalDistanceSqr() > 0.0001;
         if (fuel > 0 && isMoving) {
             cart.setFuel(fuel - 1);
+            if (fuel - 1 == 0 && !cart.level().isClientSide()) {
+                cart.level().playSound(null, cart.getX(), cart.getY(), cart.getZ(),
+                        ModSounds.TERRACART_OUT_OF_FUEL, SoundSource.NEUTRAL, 1.0f, 1.0f);
+                if (cart.level() instanceof ServerLevel sl) {
+                    spawnPerimeterParticles(sl, cart, new DustParticleOptions(0x111111, 1.2f), 28, 0.03);
+                }
+            }
         }
     }
 
@@ -40,40 +54,122 @@ public class TerracartStateManager {
     }
 
     public static void updateSoundState(TerracartEntity cart, double speed) {
-        boolean active = speed > 0.01 && cart.onGround();
-        float targetVolume = active ? Mth.clamp((float) (speed * 2.0), 0.0F, 1.0F) : 0.0F;
-        float targetPitch = active ? 1.0F + Mth.clamp((float) (speed * 0.6), 0.0F, 1.0F) : 1.0F;
+        boolean active = speed > 0.005 && cart.onGround() && cart.hasFuel();
+
+        float targetVolume = 0.0F;
+        float targetPitch = 1.0F;
+
+        if (active) {
+            double topSpeedBps = cart.getCoreStats().maxSpeed();
+            double maxSpeed = Math.max(0.5, topSpeedBps / 20.0);
+            float speedRatio = (float) Mth.clamp(speed / maxSpeed, 0.0, 1.0);
+
+            // Volume scales naturally with speed: whisper-quiet at crawl, full volume at cruising/top speed
+            targetVolume = (float) Mth.clamp(speedRatio * 1.25, 0.0, 1.0);
+
+            // Option 1: High-RPM Pitch Crescendo
+            if (speedRatio < 0.60F) {
+                // Low-to-mid range: comfortable, steady climb (0.95 -> 1.15)
+                targetPitch = 0.95F + (speedRatio / 0.60F) * 0.20F;
+            } else {
+                // Top 40%: steep exponential ramp screaming up into max speed (1.15 -> 1.55)
+                float highT = (speedRatio - 0.60F) / 0.40F;
+                targetPitch = 1.15F + (highT * highT) * 0.40F;
+            }
+        }
 
         float vol = cart.getSoundVolume();
         float pit = cart.getSoundPitch();
 
-        vol += (targetVolume - vol) * 0.15f;
-        pit += (targetPitch - pit) * 0.15f;
+        // Responsive fade-in (0.35f) to avoid sluggish dead-air, gentle fade-out (0.15f) for natural stopping
+        float lerp = (targetVolume > vol) ? 0.35f : 0.15f;
+        vol += (targetVolume - vol) * lerp;
+        pit += (targetPitch - pit) * lerp;
         if (Math.abs(vol) < 0.0005f) vol = 0.0f;
 
-        cart.setSoundActive(active);
+        cart.setSoundActive(active && vol > 0.0f);
         cart.setSoundVolume(vol);
         cart.setSoundPitch(pit);
     }
 
     public static void spawnMovementParticles(TerracartEntity cart, double dx, double dz, double speed) {
         if (!cart.onGround() || !(cart.level() instanceof ServerLevel sl)) return;
-        if (speed < 0.002) return;
+        if (speed < 0.01) return;
 
-        int count = Mth.clamp((int) (speed * 1800), 4, 20);
         double dirX = (speed > 0.0001) ? dx / speed : cart.getDeltaMovement().x;
         double dirZ = (speed > 0.0001) ? dz / speed : cart.getDeltaMovement().z;
 
+        float yawRad = (float) Math.toRadians(cart.getYRot());
+        double forwardX = -Math.sin(yawRad);
+        double forwardZ = Math.cos(yawRad);
+        double rightX = Math.cos(yawRad);
+        double rightZ = Math.sin(yawRad);
+
+        // 4 wheel coordinates relative to center (forward/back, left/right)
+        final double[][] wheels = {
+            { 0.85, -0.60 }, // Front-Left
+            { 0.85,  0.60 }, // Front-Right
+            {-0.85, -0.60 }, // Rear-Left
+            {-0.85,  0.60 }  // Rear-Right
+        };
+
+        // Scale chance per wheel: light at slow speeds, up to ~75% chance per wheel at cruising speed
+        float emitChance = Mth.clamp((float) (speed * 2.5), 0.20F, 0.75F);
+
+        for (double[] wheel : wheels) {
+            if (cart.getRandom().nextFloat() > emitChance) continue;
+
+            double wx = cart.getX() + wheel[0] * forwardX + wheel[1] * rightX + (cart.getRandom().nextDouble() - 0.5) * 0.1;
+            double wy = cart.getY() + 0.08;
+            double wz = cart.getZ() + wheel[0] * forwardZ + wheel[1] * rightZ + (cart.getRandom().nextDouble() - 0.5) * 0.1;
+
+            sl.sendParticles(ParticleTypes.SMOKE, wx, wy, wz, 1, -dirX * 0.18, 0.02, -dirZ * 0.18, 0.01);
+        }
+    }
+
+    public static void spawnPerimeterParticles(ServerLevel level, TerracartEntity cart, ParticleOptions particle, int count, double speed) {
+        float yawRad = (float) Math.toRadians(cart.getYRot());
+        double forwardX = -Math.sin(yawRad);
+        double forwardZ = Math.cos(yawRad);
+        double rightX = Math.cos(yawRad);
+        double rightZ = Math.sin(yawRad);
+
+        final double halfLength = 1.25;
+        final double halfWidth = 0.65;
+        final double frontLen = halfWidth * 2; // 1.3
+        final double sideLen = halfLength * 2;  // 2.5
+        final double totalPerimeter = (frontLen + sideLen) * 2; // 7.6
+
         for (int i = 0; i < count; i++) {
-            sl.sendParticles(ParticleTypes.SMOKE,
-                    cart.getX() + (cart.getRandom().nextDouble() - 0.5) * 1.2,
-                    cart.getY() + 0.05,
-                    cart.getZ() + (cart.getRandom().nextDouble() - 0.5) * 1.2,
-                    1, -dirX * 0.3, 0.03, -dirZ * 0.3, 0.0);
+            double d = cart.getRandom().nextDouble() * totalPerimeter;
+            double u, v;
+            if (d < frontLen) {
+                u = halfLength;
+                v = -halfWidth + d;
+            } else if (d < frontLen + sideLen) {
+                v = halfWidth;
+                u = halfLength - (d - frontLen);
+            } else if (d < frontLen * 2 + sideLen) {
+                u = -halfLength;
+                v = halfWidth - (d - (frontLen + sideLen));
+            } else {
+                v = -halfWidth;
+                u = -halfLength + (d - (frontLen * 2 + sideLen));
+            }
+
+            double px = cart.getX() + u * forwardX + v * rightX;
+            double py = cart.getY() + 0.85 + (cart.getRandom().nextDouble() - 0.5) * 0.25;
+            double pz = cart.getZ() + u * forwardZ + v * rightZ;
+
+            level.sendParticles(particle, px, py, pz, 1, 0.04, 0.04, 0.04, speed);
         }
     }
 
     public static void executeDestruction(TerracartEntity cart, ServerLevel level) {
+        level.playSound(null, cart.getX(), cart.getY(), cart.getZ(), SoundEvents.GENERIC_EXPLODE, SoundSource.BLOCKS, 0.65F, 1.1F + (cart.getRandom().nextFloat() - 0.5F) * 0.2F);
+        level.sendParticles(ParticleTypes.EXPLOSION, cart.getX(), cart.getY() + 0.5, cart.getZ(), 2, 0.2, 0.2, 0.2, 0.0);
+        level.sendParticles(new ItemParticleOption(ParticleTypes.ITEM, Items.IRON_INGOT), cart.getX(), cart.getY() + 0.5, cart.getZ(), 16, 0.4, 0.3, 0.4, 0.15);
+
         cart.kill(level);
         if (!level.getGameRules().get(GameRules.ENTITY_DROPS)) return;
 

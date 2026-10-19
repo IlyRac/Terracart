@@ -1,7 +1,19 @@
 {
-  "terracart_moving": {
+  "terracart_standard_moving": {
     "subtitle": "sound.terracart.moving",
-    "sounds": ["terracart:terracart_moving"]
+    "sounds": ["terracart:terracart_standard_moving"]
+  },
+  "terracart_swift_moving": {
+    "subtitle": "sound.terracart.moving",
+    "sounds": ["terracart:terracart_swift_moving"]
+  },
+  "terracart_sturdy_moving": {
+    "subtitle": "sound.terracart.moving",
+    "sounds": ["terracart:terracart_sturdy_moving"]
+  },
+  "terracart_prime_moving": {
+    "subtitle": "sound.terracart.moving",
+    "sounds": ["terracart:terracart_prime_moving"]
   },
   "terracart_refuel": {
     "subtitle": "sound.terracart.refuel",
@@ -18,5 +30,9 @@
   "terracart_repair": {
     "subtitle": "sound.terracart.repair",
     "sounds": ["terracart:terracart_repair"]
+  },
+  "terracart_out_of_fuel": {
+    "subtitle": "sound.terracart.out_of_fuel",
+    "sounds": ["terracart:terracart_out_of_fuel"]
   }
 }

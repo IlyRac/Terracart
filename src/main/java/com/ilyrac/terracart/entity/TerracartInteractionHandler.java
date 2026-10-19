@@ -3,6 +3,8 @@ package com.ilyrac.terracart.entity;
 import com.ilyrac.terracart.ModSounds;
 import com.ilyrac.terracart.item.ModItems;
 import net.minecraft.core.component.DataComponents;
+import net.minecraft.core.particles.ItemParticleOption;
+import net.minecraft.core.particles.ParticleOptions;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.core.particles.SimpleParticleType;
 import net.minecraft.network.chat.Component;
@@ -49,7 +51,7 @@ public class TerracartInteractionHandler {
                 return InteractionResult.SUCCESS;
             }
             cart.setHealth(cart.getHealth() + 25.0f);
-            playSpecialEffect(cart, ModSounds.TERRACART_REPAIR, ParticleTypes.EGG_CRACK, 12);
+            playSpecialEffect(cart, ModSounds.TERRACART_REPAIR, ParticleTypes.EGG_CRACK, 28);
             if (!player.isCreative()) stack.shrink(1);
             player.sendOverlayMessage(Component.literal("Terracart repaired (+25 HP)"));
             return InteractionResult.SUCCESS;
@@ -62,7 +64,7 @@ public class TerracartInteractionHandler {
                 return InteractionResult.SUCCESS;
             }
             cart.setFuel(cart.getFuel() + (25 * 240));
-            playSpecialEffect(cart, ModSounds.TERRACART_REFUEL, ParticleTypes.CAMPFIRE_COSY_SMOKE, 6);
+            playSpecialEffect(cart, ModSounds.TERRACART_REFUEL, ParticleTypes.CAMPFIRE_COSY_SMOKE, 18);
             if (!player.isCreative()) stack.shrink(1);
             player.sendOverlayMessage(Component.literal("Terracart refueled (+25 FU)"));
             return InteractionResult.SUCCESS;
@@ -79,7 +81,7 @@ public class TerracartInteractionHandler {
 
             if (!cart.level().isClientSide()) {
                 cart.setCartColor(-1);
-                playSpecialEffect(cart, SoundEvents.BUCKET_EMPTY, ParticleTypes.SPLASH, 16);
+                playSpecialEffect(cart, SoundEvents.BUCKET_EMPTY, ParticleTypes.SPLASH, 36);
 
                 // Both Creative and Survival: Wet Sponge turns into Dry Sponge
                 if (stack.getCount() == 1) {
@@ -119,7 +121,7 @@ public class TerracartInteractionHandler {
 
             if (!cart.level().isClientSide()) {
                 cart.setCartColor(dyeColor.getId());
-                playSpecialEffect(cart, SoundEvents.DYE_USE, ParticleTypes.WAX_ON, 12);
+                playSpecialEffect(cart, SoundEvents.DYE_USE, new ItemParticleOption(ParticleTypes.ITEM, stack.getItem()), 32);
                 if (!player.isCreative()) {
                     stack.shrink(1);
                 }
@@ -149,7 +151,8 @@ public class TerracartInteractionHandler {
 
         cart.setHealth(cart.getHealth() - (amount * 0.7f));
         sl.playSound(null, cart.getX(), cart.getY(), cart.getZ(), ModSounds.TERRACART_HIT, SoundSource.NEUTRAL, 1.0F, 1.0F + (cart.getRandom().nextFloat() - 0.5F) * 0.2F);
-        sl.sendParticles(ParticleTypes.SQUID_INK, cart.getX(), cart.getY() + 1.5, cart.getZ(), 5, 0.25, 0.25, 0.25, 0.1);
+        TerracartStateManager.spawnPerimeterParticles(sl, cart, ParticleTypes.CRIT, 24, 0.08);
+        TerracartStateManager.spawnPerimeterParticles(sl, cart, ParticleTypes.POOF, 10, 0.04);
 
         if (cart.getHealth() <= 0) {
             TerracartStateManager.executeDestruction(cart, sl);
@@ -157,10 +160,10 @@ public class TerracartInteractionHandler {
         return true;
     }
 
-    private static void playSpecialEffect(TerracartEntity cart, SoundEvent sound, SimpleParticleType particle, int count) {
+    private static void playSpecialEffect(TerracartEntity cart, SoundEvent sound, ParticleOptions particle, int count) {
         if (cart.level() instanceof ServerLevel sl) {
             sl.playSound(null, cart.getX(), cart.getY(), cart.getZ(), sound, SoundSource.BLOCKS, 1.0f, 1.0f + (cart.getRandom().nextFloat() - 0.5f) * 0.15f);
-            sl.sendParticles(particle, cart.getX(), cart.getY() + 1.5, cart.getZ(), count, 0.25, 0.25, 0.25, 0.1);
+            TerracartStateManager.spawnPerimeterParticles(sl, cart, particle, count, 0.05);
         }
     }
 

@@ -1,5 +1,7 @@
 package com.ilyrac.terracart.tier;
 
+import com.ilyrac.terracart.ModSounds;
+import net.minecraft.sounds.SoundEvent;
 import net.minecraft.util.StringRepresentable;
 import org.jspecify.annotations.NonNull;
 
@@ -59,6 +61,15 @@ public enum TerracartTier implements StringRepresentable {
 
     public int getMaxCondition() {
         return maxCondition;
+    }
+
+    public SoundEvent getMovingSound() {
+        return switch (this) {
+            case STANDARD -> ModSounds.TERRACART_STANDARD_MOVING;
+            case SWIFT -> ModSounds.TERRACART_SWIFT_MOVING;
+            case STURDY -> ModSounds.TERRACART_STURDY_MOVING;
+            case PRIME -> ModSounds.TERRACART_PRIME_MOVING;
+        };
     }
 
     @Override

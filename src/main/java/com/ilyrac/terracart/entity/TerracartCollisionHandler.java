@@ -128,7 +128,8 @@ public class TerracartCollisionHandler {
 
         if (cart.level() instanceof ServerLevel sl) {
             sl.playSound(null, cart.getX(), cart.getY(), cart.getZ(), ModSounds.TERRACART_CRASH, SoundSource.NEUTRAL, 0.6F, 1.0F);
-            sl.sendParticles(ParticleTypes.SQUID_INK, cart.getX(), cart.getY() + 1.0, cart.getZ(), 6, 0.12, 0.12, 0.12, 0.08);
+            TerracartStateManager.spawnPerimeterParticles(sl, cart, ParticleTypes.CRIT, 28, 0.08);
+            TerracartStateManager.spawnPerimeterParticles(sl, cart, ParticleTypes.POOF, 12, 0.04);
             if (cart.getHealth() <= 0.0f) TerracartStateManager.executeDestruction(cart, sl);
         }
         cart.setHitCooldown(30);

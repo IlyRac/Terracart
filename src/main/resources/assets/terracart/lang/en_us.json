@@ -16,5 +16,6 @@
   "sound.terracart.refuel": "Terracart refuel",
   "sound.terracart.crash": "Terracart crash",
   "sound.terracart.hit": "Terracart hit",
-  "sound.terracart.repair": "Terracart repair"
+  "sound.terracart.repair": "Terracart repair",
+  "sound.terracart.out_of_fuel": "Terracart engine sputters"
 }

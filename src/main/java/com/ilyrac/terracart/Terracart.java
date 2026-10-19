@@ -3,6 +3,7 @@ package com.ilyrac.terracart;
 import com.ilyrac.terracart.component.ModDataComponents;
 import com.ilyrac.terracart.entity.ModEntities;
 import com.ilyrac.terracart.item.ModItems;
+import com.ilyrac.terracart.loot.ModLootTableModifiers;
 import com.ilyrac.terracart.network.TerracartInputPayload;
 import net.fabricmc.api.ModInitializer;
 import org.slf4j.Logger;
@@ -19,6 +20,7 @@ public class Terracart implements ModInitializer {
 		ModItems.initialize();
 		ModEntities.initialize();
 		ModSounds.initialize();
+		ModLootTableModifiers.modifyLootTables();
 
 		LOGGER.info("Terracart Loaded Successfully!");
 	}

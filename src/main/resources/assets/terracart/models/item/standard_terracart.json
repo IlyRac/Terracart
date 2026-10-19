@@ -2,6 +2,7 @@
 	"format_version": "26.3",
 	"texture_size": [128, 128],
 	"textures": {
+		"particle": "terracart:item/standard_terracart_base",
 		"base": "terracart:item/standard_terracart_base",
 		"overlay": "terracart:item/standard_terracart_overlay"
 	},

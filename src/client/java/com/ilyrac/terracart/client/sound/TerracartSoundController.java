@@ -19,17 +19,18 @@ public final class TerracartSoundController {
 
         TerracartSoundInstance sound = ACTIVE_SOUNDS.get(cart);
 
-        // Cart is removed or out of range, stop the sound
-        if (cart.isRemoved() || !inRange) {
+        // Cart is removed, out of range, or sound stopped (e.g. tier changed), clean up
+        if (cart.isRemoved() || !inRange || (sound != null && sound.isStopped())) {
             if (sound != null) {
                 mc.getSoundManager().stop(sound);
                 ACTIVE_SOUNDS.remove(cart);
+                sound = null;
             }
-            return;
+            if (cart.isRemoved() || !inRange) return;
         }
 
         // Only start the sound loop if active and fuel exists
-        if (sound == null && cart.getEntityData().get(TerracartEntity.SOUND_ACTIVE)) {
+        if (sound == null && cart.isSoundActive()) {
             sound = new TerracartSoundInstance(cart);
             ACTIVE_SOUNDS.put(cart, sound);
             mc.getSoundManager().play(sound);

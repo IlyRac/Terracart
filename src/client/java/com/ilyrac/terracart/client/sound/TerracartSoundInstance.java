@@ -1,17 +1,19 @@
 package com.ilyrac.terracart.client.sound;
 
-import com.ilyrac.terracart.ModSounds;
 import com.ilyrac.terracart.entity.TerracartEntity;
+import com.ilyrac.terracart.tier.TerracartTier;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.resources.sounds.AbstractTickableSoundInstance;
 import net.minecraft.sounds.SoundSource;
 
 public class TerracartSoundInstance extends AbstractTickableSoundInstance {
     private final TerracartEntity cart;
+    private final TerracartTier tier;
 
     public TerracartSoundInstance(TerracartEntity cart) {
-        super(ModSounds.TERRACART_MOVING, SoundSource.NEUTRAL, cart.level().getRandom());
+        super(cart.getTier().getMovingSound(), SoundSource.NEUTRAL, cart.level().getRandom());
         this.cart = cart;
+        this.tier = cart.getTier();
         this.looping = true;
         this.delay = 0;
         this.relative = false;
@@ -33,6 +35,12 @@ public class TerracartSoundInstance extends AbstractTickableSoundInstance {
     @Override
     public void tick() {
         if (cart == null || cart.isRemoved()) {
+            super.stop();
+            return;
+        }
+
+        // If tier changed, stop so controller can recreate the sound instance with the new tier sound
+        if (cart.getTier() != this.tier) {
             super.stop();
             return;
         }
@@ -60,10 +68,14 @@ public class TerracartSoundInstance extends AbstractTickableSoundInstance {
             targetVolume = serverVol * distanceFadeFactor;
         }
 
-        // Smoothly interpolate transitions (handles both fade-out AND fade-in)
-        final float CLIENT_LERP = 0.15f;
-        this.volume += (targetVolume - this.volume) * CLIENT_LERP;
-        this.pitch  += (serverPitch - this.pitch) * CLIENT_LERP;
+        // Smoothly interpolate transitions (brisk 0.35f fade-in to eliminate dead air, gentle 0.15f fade-out)
+        float lerpRate = (targetVolume > this.volume) ? 0.35f : 0.15f;
+        this.volume += (targetVolume - this.volume) * lerpRate;
+        this.pitch  += (serverPitch - this.pitch) * lerpRate;
+
+        if (this.volume < 0.005f) {
+            this.volume = 0.0f;
+        }
 
         // Track spatial positions seamlessly
         this.x = cart.getX();
