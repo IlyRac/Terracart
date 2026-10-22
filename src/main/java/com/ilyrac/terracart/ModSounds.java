@@ -16,7 +16,9 @@ public class ModSounds {
     public static final SoundEvent TERRACART_CRASH           = register("terracart_crash");
     public static final SoundEvent TERRACART_HIT             = register("terracart_hit");
     public static final SoundEvent TERRACART_REPAIR          = register("terracart_repair");
-    public static final SoundEvent TERRACART_OUT_OF_FUEL     = register("terracart_out_of_fuel");
+    public static final SoundEvent TERRACART_ENGINE_SPUTTERS     = register("terracart_engine_sputters");
+    public static final SoundEvent TERRACART_SHIFT           = register("terracart_shift");
+    public static final SoundEvent TERRACART_BRAKE           = register("terracart_brake");
 
     private static SoundEvent register(String name) {
         Identifier id = Identifier.fromNamespaceAndPath(Terracart.MOD_ID, name);

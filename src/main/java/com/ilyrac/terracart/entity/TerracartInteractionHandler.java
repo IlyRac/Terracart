@@ -6,11 +6,11 @@ import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.particles.ItemParticleOption;
 import net.minecraft.core.particles.ParticleOptions;
 import net.minecraft.core.particles.ParticleTypes;
-import net.minecraft.core.particles.SimpleParticleType;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundSource;
+import net.minecraft.tags.DamageTypeTags;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.damagesource.DamageSource;
@@ -20,6 +20,7 @@ import net.minecraft.sounds.SoundEvents;
 import net.minecraft.world.item.DyeColor;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.phys.Vec3;
 
 
 public class TerracartInteractionHandler {
@@ -45,8 +46,9 @@ public class TerracartInteractionHandler {
         }
 
         // 1. Repair Mechanic (+25 HP fixed point)
+        // Prevent wasting an iron ingot if missing less than 5 HP (nearly/fully repaired)
         if (stack.is(Items.IRON_INGOT)) {
-            if (cart.getHealth() >= cart.getMaxHealth()) {
+            if (cart.getMaxHealth() - cart.getHealth() < 5.0f) {
                 player.sendOverlayMessage(Component.literal("Terracart is already fully repaired."));
                 return InteractionResult.SUCCESS;
             }
@@ -58,8 +60,9 @@ public class TerracartInteractionHandler {
         }
 
         // 2. Refueling Mechanic (+25 FU fixed point = 25 * 240 ticks)
+        // Prevent wasting coal/charcoal if missing less than 5 FU (nearly/fully fueled)
         if (stack.is(Items.COAL) || stack.is(Items.CHARCOAL)) {
-            if (cart.getFuel() >= cart.getMaxFuel()) {
+            if (cart.getMaxFuel() - cart.getFuel() < 5 * 240) {
                 player.sendOverlayMessage(Component.literal("Fuel tank is already full!"));
                 return InteractionResult.SUCCESS;
             }
@@ -145,14 +148,54 @@ public class TerracartInteractionHandler {
     }
 
     // Moved damage logic here
-    public static boolean handleHurtServer(TerracartEntity cart, ServerLevel sl, float amount) {
+    public static boolean handleHurtServer(TerracartEntity cart, ServerLevel sl, DamageSource src, float amount) {
         // Clean and safe: no more 'isInvulnerable' errors here!
         if (cart.isRemoved()) return false;
 
-        cart.setHealth(cart.getHealth() - (amount * 0.7f));
-        sl.playSound(null, cart.getX(), cart.getY(), cart.getZ(), ModSounds.TERRACART_HIT, SoundSource.NEUTRAL, 1.0F, 1.0F + (cart.getRandom().nextFloat() - 0.5F) * 0.2F);
-        TerracartStateManager.spawnPerimeterParticles(sl, cart, ParticleTypes.CRIT, 24, 0.08);
-        TerracartStateManager.spawnPerimeterParticles(sl, cart, ParticleTypes.POOF, 10, 0.04);
+        // 1. 100% 1:1 Damage Ratio (1 damage = 1 condition HP)
+        cart.setHealth(Math.max(0.0F, cart.getHealth() - amount));
+
+        // 2. Physical Impulse, Feedback & Stun: Explosion Blast Wave vs Subtle Melee Nudge
+        if (src.is(DamageTypeTags.IS_EXPLOSION)) {
+            // Generic crash logic for blasts: crash sound, crit & poof particles, and 10-tick freeze stun
+            float soundPitch = amount > 20.0F ? 0.9F : 1.0F;
+            sl.playSound(null, cart.getX(), cart.getY(), cart.getZ(), ModSounds.TERRACART_CRASH, SoundSource.NEUTRAL, 0.85F, soundPitch);
+            TerracartStateManager.spawnPerimeterParticles(sl, cart, ParticleTypes.CRIT, 32, 0.08);
+            TerracartStateManager.spawnPerimeterParticles(sl, cart, ParticleTypes.POOF, 18, 0.04);
+
+            net.minecraft.world.entity.Entity sourceEntity = src.getDirectEntity() != null ? src.getDirectEntity() : src.getEntity();
+            Vec3 blastCenter = src.getSourcePosition() != null ? src.getSourcePosition() : (sourceEntity != null ? sourceEntity.position() : null);
+            Vec3 blastDir;
+            if (blastCenter != null) {
+                Vec3 diff = cart.position().subtract(blastCenter);
+                blastDir = diff.horizontalDistanceSqr() > 1.0E-4 
+                        ? new Vec3(diff.x, 0.0, diff.z).normalize() 
+                        : new Vec3(cart.getRandom().nextDouble() - 0.5, 0.0, cart.getRandom().nextDouble() - 0.5).normalize();
+            } else {
+                blastDir = new Vec3(cart.getRandom().nextDouble() - 0.5, 0.0, cart.getRandom().nextDouble() - 0.5).normalize();
+            }
+            double blastForce = Math.min(1.0, 0.35 + (amount / 40.0) * 0.45);
+            double blastY = Math.clamp(0.32 + (amount / 40.0) * 0.24, 0.32, 0.56);
+            cart.setDeltaMovement(blastDir.x * blastForce, blastY, blastDir.z * blastForce);
+            cart.setCurrentSpeed(0.0);
+            cart.setStunTicks(10);
+            cart.setHitCooldown(10);
+            cart.needsSync = true;
+        } else {
+            // Generic melee / projectile hit: hit clink and subtle crit sparks
+            sl.playSound(null, cart.getX(), cart.getY(), cart.getZ(), ModSounds.TERRACART_HIT, SoundSource.NEUTRAL, 1.0F, 1.0F + (cart.getRandom().nextFloat() - 0.5F) * 0.2F);
+            TerracartStateManager.spawnPerimeterParticles(sl, cart, ParticleTypes.CRIT, 16, 0.08);
+
+            if (src.getEntity() != null) {
+                Vec3 diff = cart.position().subtract(src.getEntity().position());
+                Vec3 hitDir = diff.horizontalDistanceSqr() > 1.0E-4 
+                        ? new Vec3(diff.x, 0.0, diff.z).normalize() 
+                        : new Vec3(0.0, 0.0, 1.0);
+                double nudge = 0.06;
+                cart.setDeltaMovement(hitDir.x * nudge, 0.0, hitDir.z * nudge);
+                cart.needsSync = true;
+            }
+        }
 
         if (cart.getHealth() <= 0) {
             TerracartStateManager.executeDestruction(cart, sl);

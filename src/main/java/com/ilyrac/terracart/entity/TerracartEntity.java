@@ -4,7 +4,9 @@ import com.ilyrac.terracart.ModSounds;
 import com.ilyrac.terracart.tier.TerracartTier;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.DustParticleOptions;
+import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.sounds.SoundSource;
+import net.minecraft.tags.FluidTags;
 import net.minecraft.network.syncher.EntityDataAccessor;
 import net.minecraft.network.syncher.EntityDataSerializers;
 import net.minecraft.network.syncher.SynchedEntityData;
@@ -19,6 +21,7 @@ import net.minecraft.world.entity.vehicle.VehicleEntity;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.LeavesBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.storage.ValueInput;
 import net.minecraft.world.level.storage.ValueOutput;
@@ -90,11 +93,21 @@ public class TerracartEntity extends VehicleEntity {
 
     public void setDriverInput(float fwd, float str) {
         float clampedFwd = Mth.clamp(fwd, -1.0f, 1.0f);
-        if (!this.hasFuel() && Math.abs(clampedFwd) > 0.1f && Math.abs(this.prevForwardInput) <= 0.1f && !this.level().isClientSide()) {
-            this.level().playSound(null, this.getX(), this.getY(), this.getZ(),
-                    ModSounds.TERRACART_OUT_OF_FUEL, SoundSource.NEUTRAL, 0.8f, 1.0f);
-            if (this.level() instanceof ServerLevel sl) {
-                TerracartStateManager.spawnPerimeterParticles(sl, this, new DustParticleOptions(0x111111, 1.2f), 28, 0.03);
+        if (Math.abs(clampedFwd) > 0.1f && Math.abs(this.prevForwardInput) <= 0.1f && !this.level().isClientSide()) {
+            boolean inDeepWater = this.getFluidHeight(FluidTags.WATER) > 1.05;
+            if (inDeepWater) {
+                this.level().playSound(null, this.getX(), this.getY(), this.getZ(),
+                        ModSounds.TERRACART_ENGINE_SPUTTERS, SoundSource.NEUTRAL, 0.9f, 0.85f);
+                if (this.level() instanceof ServerLevel sl) {
+                    TerracartStateManager.spawnPerimeterParticles(sl, this, ParticleTypes.BUBBLE, 24, 0.05);
+                    TerracartStateManager.spawnPerimeterParticles(sl, this, ParticleTypes.BUBBLE_POP, 12, 0.04);
+                }
+            } else if (!this.hasFuel()) {
+                this.level().playSound(null, this.getX(), this.getY(), this.getZ(),
+                        ModSounds.TERRACART_ENGINE_SPUTTERS, SoundSource.NEUTRAL, 0.8f, 1.0f);
+                if (this.level() instanceof ServerLevel sl) {
+                    TerracartStateManager.spawnPerimeterParticles(sl, this, new DustParticleOptions(0x111111, 1.2f), 28, 0.03);
+                }
             }
         }
         this.prevForwardInput = clampedFwd;
@@ -110,6 +123,53 @@ public class TerracartEntity extends VehicleEntity {
     public void setWasAirborne(boolean airborne) { this.wasAirborne = airborne; }
     public double getAirborneStartY() { return airborneStartY; }
     public void setAirborneStartY(double y) { this.airborneStartY = y; }
+
+    // --- 3b. DIRECTIONAL SHIFTING (BRAKING & REVERSING) ---
+    private int currentGear = 1; // 1 = forward (Drive), -1 = reverse
+    private int shiftDelayTimer = 0;
+    private int shiftTargetDirection = 0; // 1 = forward, -1 = reverse
+
+    public int getCurrentGear() { return currentGear; }
+    public void setCurrentGear(int gear) { this.currentGear = gear; }
+    public int getShiftDelayTimer() { return shiftDelayTimer; }
+    public void setShiftDelayTimer(int timer) { this.shiftDelayTimer = timer; }
+    public int getShiftTargetDirection() { return shiftTargetDirection; }
+    public void setShiftTargetDirection(int dir) { this.shiftTargetDirection = dir; }
+
+    // --- 3c. IMPACT STUN (CRASH & FALL RECOVERY) ---
+    public static final EntityDataAccessor<Integer> STUN_TICKS = SynchedEntityData.defineId(TerracartEntity.class, EntityDataSerializers.INT);
+
+    public int getStunTicks() { return this.entityData.get(STUN_TICKS); }
+    public void setStunTicks(int ticks) { this.entityData.set(STUN_TICKS, ticks); }
+
+    // --- 3d. SLOPE TRAVERSAL (UPHILL RESISTANCE & DOWNHILL GRAVITY) ---
+    private int inclineTimer = 0;
+    private int descentTimer = 0;
+    private int stepBleedCooldown = 0;
+
+    public int getInclineTimer() { return inclineTimer; }
+    public void setInclineTimer(int timer) { this.inclineTimer = timer; }
+    public int getDescentTimer() { return descentTimer; }
+    public void setDescentTimer(int timer) { this.descentTimer = timer; }
+    public int getStepBleedCooldown() { return stepBleedCooldown; }
+    public void setStepBleedCooldown(int ticks) { this.stepBleedCooldown = ticks; }
+
+    // --- 3e. FOLIAGE & LEAF INTERACTION ---
+    private int leafSoundCooldown = 0;
+
+    public int getLeafSoundCooldown() { return leafSoundCooldown; }
+    public void setLeafSoundCooldown(int ticks) { this.leafSoundCooldown = ticks; }
+
+    // --- 3f. BRAKING STATE ---
+    public static final EntityDataAccessor<Boolean> BRAKING_ACTIVE = SynchedEntityData.defineId(TerracartEntity.class, EntityDataSerializers.BOOLEAN);
+
+    public boolean isBrakingActive() { return this.entityData.get(BRAKING_ACTIVE); }
+    public void setBrakingActive(boolean active) { this.entityData.set(BRAKING_ACTIVE, active); }
+
+    public boolean isInLeaves() {
+        return this.level().getBlockStates(this.getBoundingBox()).anyMatch(state -> state.getBlock() instanceof LeavesBlock);
+    }
+
 
     // --- 4. AUDIO & COSMETICS ---
     public static final EntityDataAccessor<Boolean> SOUND_ACTIVE = SynchedEntityData.defineId(TerracartEntity.class, EntityDataSerializers.BOOLEAN);
@@ -142,10 +202,16 @@ public class TerracartEntity extends VehicleEntity {
 
     // --- 6. ACTION & RISK COOLDOWNS ---
     private int hitCooldown = 0;
+    private int mobHitCooldown = 0;
+    private int cartCollisionCooldown = 0;
     private int fireCooldown = 0;
 
     public int getHitCooldown() { return hitCooldown; }
     public void setHitCooldown(int cooldown) { this.hitCooldown = cooldown; }
+    public int getMobHitCooldown() { return mobHitCooldown; }
+    public void setMobHitCooldown(int cooldown) { this.mobHitCooldown = cooldown; }
+    public int getCartCollisionCooldown() { return cartCollisionCooldown; }
+    public void setCartCollisionCooldown(int cooldown) { this.cartCollisionCooldown = cooldown; }
     public int getFireCooldown() { return fireCooldown; }
     public void setFireCooldown(int cooldown) { this.fireCooldown = cooldown; }
     public float getSyncedForward() { return this.entityData.get(DRIVER_FORWARD); }
@@ -161,7 +227,6 @@ public class TerracartEntity extends VehicleEntity {
         this.setFuel(startFuel * 240);
     }
 
-
     @Override
     protected void defineSynchedData(SynchedEntityData.@NonNull Builder builder) {
         super.defineSynchedData(builder);
@@ -176,7 +241,9 @@ public class TerracartEntity extends VehicleEntity {
                 .define(SOUND_PITCH, 1.0f)
                 .define(CURRENT_HEALTH, 100.0f)
                 .define(WHEEL_TURNING, 0.0f)
-                .define(DRIVER_FORWARD, 0.0f);
+                .define(DRIVER_FORWARD, 0.0f)
+                .define(STUN_TICKS, 0)
+                .define(BRAKING_ACTIVE, false);
     }
 
     @Override
@@ -233,12 +300,24 @@ public class TerracartEntity extends VehicleEntity {
             this.isFirstTick = false;
         }
 
-        if (lastPos != Vec3.ZERO) speedBps = (float) (this.position().distanceTo(lastPos) * 20.0);
+        if (lastPos != Vec3.ZERO) {
+            double hdx = this.getX() - lastPos.x;
+            double hdz = this.getZ() - lastPos.z;
+            speedBps = (float) (Math.sqrt(hdx * hdx + hdz * hdz) * 20.0);
+        }
         lastPos = this.position();
 
         TerracartStateManager.burnFuel(this);
         if (hitCooldown > 0) hitCooldown--;
+        if (mobHitCooldown > 0) mobHitCooldown--;
+        if (cartCollisionCooldown > 0) cartCollisionCooldown--;
         if (fireCooldown > 0) fireCooldown--;
+        int st = getStunTicks();
+        if (st > 0) setStunTicks(st - 1);
+        if (inclineTimer > 0) inclineTimer--;
+        if (descentTimer > 0) descentTimer--;
+        if (stepBleedCooldown > 0) stepBleedCooldown--;
+        if (leafSoundCooldown > 0) leafSoundCooldown--;
 
         TerracartStateManager.handleHazards(this);
 
@@ -247,8 +326,11 @@ public class TerracartEntity extends VehicleEntity {
         this.setDeltaMovement(motion);
         this.move(MoverType.SELF, motion);
 
-        TerracartPhysics.handleStepUp(this, motion);
-        TerracartPhysics.handleStepDown(this, motion);
+        boolean steppedUp = TerracartPhysics.handleStepUp(this, motion);
+        if (!steppedUp) {
+            TerracartCollisionHandler.checkWallCrash(this, motion);
+            TerracartPhysics.handleStepDown(this, motion);
+        }
         TerracartPhysics.handleLandFallDamage(this);
 
         // Visuals & Rotations
@@ -261,7 +343,10 @@ public class TerracartEntity extends VehicleEntity {
         double signedDistance = dx * (-Math.sin(yawRad)) + dz * Math.cos(yawRad);
         this.entityData.set(WHEEL_ROTATION, this.prevWheelRotation + (float) (-signedDistance / 0.35f));
 
+        this.setXRot(0.0F);
+
         TerracartCollisionHandler.handleCollisions(this, speedSq);
+        TerracartCollisionHandler.handleCartToCartCollisions(this, speedSq);
 
         lastX = this.getX(); lastZ = this.getZ();
 
@@ -316,12 +401,20 @@ public class TerracartEntity extends VehicleEntity {
         if (this.isInvulnerableToBase(src)) {
             return false;
         }
-        return TerracartInteractionHandler.handleHurtServer(this, sl, amount);
+        return TerracartInteractionHandler.handleHurtServer(this, sl, src, amount);
     }
 
     @Override
     public void push(@NonNull Entity entity) {
         TerracartCollisionHandler.performPush(this, entity);
+    }
+
+    @Override
+    public void push(double x, double y, double z) {
+        // Terracart is a heavy iron vehicle: damp raw external shoves (like vanilla player sprint hits)
+        // and keep it firmly grounded (y = 0.0) so it never pops into the air or gets launched like a puck.
+        double massFactor = 0.15; // 85% mass dampening against vanilla player/mob sprint pushes
+        super.push(x * massFactor, 0.0, z * massFactor);
     }
 
     @Override
@@ -367,6 +460,11 @@ public class TerracartEntity extends VehicleEntity {
     @Override
     public boolean isPushable() {
         return TerracartCompatibilityHandler.isPushable(this);
+    }
+
+    @Override
+    public boolean displayFireAnimation() {
+        return false;
     }
 
     @Override

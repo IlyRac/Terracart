@@ -31,8 +31,16 @@
     "subtitle": "sound.terracart.repair",
     "sounds": ["terracart:terracart_repair"]
   },
-  "terracart_out_of_fuel": {
-    "subtitle": "sound.terracart.out_of_fuel",
-    "sounds": ["terracart:terracart_out_of_fuel"]
+  "terracart_engine_sputters": {
+    "subtitle": "sound.terracart.engine_sputters",
+    "sounds": ["terracart:terracart_engine_sputters"]
+  },
+  "terracart_shift": {
+    "subtitle": "sound.terracart.shift",
+    "sounds": ["terracart:terracart_shift"]
+  },
+  "terracart_brake": {
+    "subtitle": "sound.terracart.brake",
+    "sounds": ["terracart:terracart_brake"]
   }
 }

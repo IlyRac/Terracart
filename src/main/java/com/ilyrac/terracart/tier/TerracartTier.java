@@ -72,6 +72,15 @@ public enum TerracartTier implements StringRepresentable {
         };
     }
 
+    public double getReverseSpeed() {
+        return switch (this) {
+            case SWIFT -> 8.0;
+            case PRIME -> 7.0;
+            case STANDARD -> 6.0;
+            case STURDY -> 5.0;
+        };
+    }
+
     @Override
     public @NonNull String getSerializedName() {
         return id;

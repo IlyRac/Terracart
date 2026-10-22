@@ -70,7 +70,7 @@ public class TerracartCompatibilityHandler {
     }
 
     public static boolean isPushable(TerracartEntity cart) {
-        return true;
+        return false;
     }
 
     public static boolean canBeCollidedWith(TerracartEntity cart, @Nullable Entity entity) {
