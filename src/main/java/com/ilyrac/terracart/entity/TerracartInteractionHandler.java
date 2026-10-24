@@ -45,31 +45,32 @@ public class TerracartInteractionHandler {
             }
         }
 
-        // 1. Repair Mechanic (+25 HP fixed point)
-        // Prevent wasting an iron ingot if missing less than 5 HP (nearly/fully repaired)
+        // 1. Repair Mechanic (+15 HP via Iron Ingot)
+        // Prevent wasting an iron ingot if missing less than 3 HP (nearly/fully repaired)
         if (stack.is(Items.IRON_INGOT)) {
-            if (cart.getMaxHealth() - cart.getHealth() < 5.0f) {
-                player.sendOverlayMessage(Component.literal("Terracart is already fully repaired."));
+            if (cart.getMaxHealth() - cart.getHealth() < 3.0f) {
+                player.sendOverlayMessage(Component.literal("Terracart is already in good condition."));
                 return InteractionResult.SUCCESS;
             }
-            cart.setHealth(cart.getHealth() + 25.0f);
+            cart.setHealth(Math.min(cart.getMaxHealth(), cart.getHealth() + 15.0f));
             playSpecialEffect(cart, ModSounds.TERRACART_REPAIR, ParticleTypes.EGG_CRACK, 28);
             if (!player.isCreative()) stack.shrink(1);
-            player.sendOverlayMessage(Component.literal("Terracart repaired (+25 HP)"));
+            player.sendOverlayMessage(Component.literal("Terracart repaired (+15 HP)"));
             return InteractionResult.SUCCESS;
         }
 
-        // 2. Refueling Mechanic (+25 FU fixed point = 25 * 240 ticks)
-        // Prevent wasting coal/charcoal if missing less than 5 FU (nearly/fully fueled)
-        if (stack.is(Items.COAL) || stack.is(Items.CHARCOAL)) {
-            if (cart.getMaxFuel() - cart.getFuel() < 5 * 240) {
+        // 2. Refueling Mechanic (+15 FU per Coal = 15 * 160 ticks = 2.0 min drive time)
+        // Strictly pure Coal only (no charcoal). Prevent wasting coal if missing less than 3 FU.
+        if (stack.is(Items.COAL)) {
+            int ticksPerUnit = TerracartEntity.TICKS_PER_FUEL_UNIT;
+            if (cart.getMaxFuel() - cart.getFuel() < 3 * ticksPerUnit) {
                 player.sendOverlayMessage(Component.literal("Fuel tank is already full!"));
                 return InteractionResult.SUCCESS;
             }
-            cart.setFuel(cart.getFuel() + (25 * 240));
+            cart.setFuel(Math.min(cart.getMaxFuel(), cart.getFuel() + (15 * ticksPerUnit)));
             playSpecialEffect(cart, ModSounds.TERRACART_REFUEL, ParticleTypes.CAMPFIRE_COSY_SMOKE, 18);
             if (!player.isCreative()) stack.shrink(1);
-            player.sendOverlayMessage(Component.literal("Terracart refueled (+25 FU)"));
+            player.sendOverlayMessage(Component.literal("Terracart refueled (+15 FU)"));
             return InteractionResult.SUCCESS;
         }
 
@@ -86,15 +87,17 @@ public class TerracartInteractionHandler {
                 cart.setCartColor(-1);
                 playSpecialEffect(cart, SoundEvents.BUCKET_EMPTY, ParticleTypes.SPLASH, 36);
 
-                // Both Creative and Survival: Wet Sponge turns into Dry Sponge
-                if (stack.getCount() == 1) {
-                    player.setItemInHand(hand, new ItemStack(Items.SPONGE));
-                } else {
-                    stack.shrink(1);
-                    ItemStack drySponge = new ItemStack(Items.SPONGE);
-                    if (!player.getInventory().add(drySponge)) {
-                        if (cart.level() instanceof ServerLevel sl) {
-                            sl.addFreshEntity(new ItemEntity(sl, player.getX(), player.getY(), player.getZ(), drySponge));
+                // Survival only: Wet Sponge turns into Dry Sponge
+                if (!player.isCreative()) {
+                    if (stack.getCount() == 1) {
+                        player.setItemInHand(hand, new ItemStack(Items.SPONGE));
+                    } else {
+                        stack.shrink(1);
+                        ItemStack drySponge = new ItemStack(Items.SPONGE);
+                        if (!player.getInventory().add(drySponge)) {
+                            if (cart.level() instanceof ServerLevel sl) {
+                                sl.addFreshEntity(new ItemEntity(sl, player.getX(), player.getY(), player.getZ(), drySponge));
+                            }
                         }
                     }
                 }
@@ -157,11 +160,13 @@ public class TerracartInteractionHandler {
 
         // 2. Physical Impulse, Feedback & Stun: Explosion Blast Wave vs Subtle Melee Nudge
         if (src.is(DamageTypeTags.IS_EXPLOSION)) {
-            // Generic crash logic for blasts: crash sound, crit & poof particles, and 10-tick freeze stun
+            boolean isMajorBlast = amount >= 5.0F;
             float soundPitch = amount > 20.0F ? 0.9F : 1.0F;
-            sl.playSound(null, cart.getX(), cart.getY(), cart.getZ(), ModSounds.TERRACART_CRASH, SoundSource.NEUTRAL, 0.85F, soundPitch);
-            TerracartStateManager.spawnPerimeterParticles(sl, cart, ParticleTypes.CRIT, 32, 0.08);
-            TerracartStateManager.spawnPerimeterParticles(sl, cart, ParticleTypes.POOF, 18, 0.04);
+            sl.playSound(null, cart.getX(), cart.getY(), cart.getZ(), isMajorBlast ? ModSounds.TERRACART_CRASH : ModSounds.TERRACART_HIT, SoundSource.NEUTRAL, 0.85F, soundPitch);
+            TerracartStateManager.spawnPerimeterParticles(sl, cart, ParticleTypes.CRIT, isMajorBlast ? 32 : 16, 0.08);
+            if (isMajorBlast) {
+                TerracartStateManager.spawnPerimeterParticles(sl, cart, ParticleTypes.POOF, 18, 0.04);
+            }
 
             net.minecraft.world.entity.Entity sourceEntity = src.getDirectEntity() != null ? src.getDirectEntity() : src.getEntity();
             Vec3 blastCenter = src.getSourcePosition() != null ? src.getSourcePosition() : (sourceEntity != null ? sourceEntity.position() : null);
@@ -178,8 +183,15 @@ public class TerracartInteractionHandler {
             double blastY = Math.clamp(0.32 + (amount / 40.0) * 0.24, 0.32, 0.56);
             cart.setDeltaMovement(blastDir.x * blastForce, blastY, blastDir.z * blastForce);
             cart.setCurrentSpeed(0.0);
-            cart.setStunTicks(10);
-            cart.setHitCooldown(10);
+            cart.setStunTicks(isMajorBlast ? 10 : 5);
+            cart.setHitCooldown(isMajorBlast ? 10 : 5);
+
+            // Universal Fuel Leak for Explosions (1 to 5 FU leaked on major blast)
+            if (isMajorBlast) {
+                int fuelLossUnits = 1 + cart.getRandom().nextInt(5);
+                cart.setFuel(Math.max(0, cart.getFuel() - fuelLossUnits * TerracartEntity.TICKS_PER_FUEL_UNIT));
+            }
+
             cart.needsSync = true;
         } else {
             // Generic melee / projectile hit: hit clink and subtle crit sparks

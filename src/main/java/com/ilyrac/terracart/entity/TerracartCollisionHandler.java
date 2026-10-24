@@ -235,10 +235,11 @@ public class TerracartCollisionHandler {
             }
             if (heavyTarget == null) heavyTarget = collidingLiving.get(0);
 
+            double crashProgress = Mth.clamp((bps - 8.0) / 18.0, 0.0, 1.0);
+            float cartDamage = (float) Mth.lerp(crashProgress, 5.0, 15.0);
             boolean isSevere = bps > 16.0;
-            float cartDamage = isSevere ? 6.0f + cart.getRandom().nextInt(4) : 3.0f + cart.getRandom().nextInt(4);
             float playerDamage = isSevere ? 6.0f : 3.0f; // 3 hearts (6 HP) if severe, 1.5 hearts (3 HP) if medium
-            int fuelLossUnits = 2 + cart.getRandom().nextInt(3); // 2 to 4 FU
+            int fuelLossUnits = 1 + cart.getRandom().nextInt(5); // 1 to 5 FU leaked!
 
             // Attributed ramming damage to heavy mob
             if (!cart.level().isClientSide()) {
@@ -334,8 +335,28 @@ public class TerracartCollisionHandler {
         if (list.isEmpty()) return;
 
         for (TerracartEntity other : list) {
-            // Server: pair-wise guard so damage/sounds/particles process strictly once per unique pair
-            if (!cart.level().isClientSide() && cart.getId() > other.getId()) continue;
+            // Compute velocities & forward vectors using real movement deltas for remote entities
+            double speedA = cart.getCurrentSpeed();
+            double dxB = other.getX() - other.xOld;
+            double dzB = other.getZ() - other.zOld;
+            double moveSpeedB = Math.sqrt(dxB * dxB + dzB * dzB);
+            double speedB = (Math.abs(other.getCurrentSpeed()) > 0.001) ? other.getCurrentSpeed() : moveSpeedB;
+
+            double bpsA = Math.abs(speedA) * 20.0;
+            double bpsB = Math.abs(speedB) * 20.0;
+
+            // Server: pair-wise authority guard based on kinetic momentum.
+            // The faster/ramming cart initiates collision resolution.
+            // If speeds are equal, deterministically break ties using entity ID.
+            if (!cart.level().isClientSide()) {
+                boolean hasPriority;
+                if (Math.abs(bpsA - bpsB) > 0.1) {
+                    hasPriority = (bpsA >= bpsB);
+                } else {
+                    hasPriority = (cart.getId() < other.getId());
+                }
+                if (!hasPriority) continue;
+            }
 
             // Client: only process collisions for our own local vehicle so remote entities don't double-trigger
             if (cart.level().isClientSide()) {
@@ -356,15 +377,13 @@ public class TerracartCollisionHandler {
             double nx = dx / dist;
             double nz = dz / dist;
 
-            // Compute velocities & forward vectors using real movement deltas for remote entities
-            double speedA = cart.getCurrentSpeed();
-            double dxB = other.getX() - other.xOld;
-            double dzB = other.getZ() - other.zOld;
-            double moveSpeedB = Math.sqrt(dxB * dxB + dzB * dzB);
-            double speedB = (Math.abs(other.getCurrentSpeed()) > 0.001) ? other.getCurrentSpeed() : moveSpeedB;
+            // Cooldown & Stun check for collision events
+            if (cart.getStunTicks() > 0 || other.getStunTicks() > 0 || cart.getCartCollisionCooldown() > 0 || other.getCartCollisionCooldown() > 0) continue;
 
-            double bpsA = Math.abs(speedA) * 20.0;
-            double bpsB = Math.abs(speedB) * 20.0;
+            // Universal anti-clipping separation push along contact normal (minimal cushion to prevent overlap)
+            double overlapPush = 0.02;
+            cart.setDeltaMovement(cart.getDeltaMovement().add(-nx * overlapPush, 0.0, -nz * overlapPush));
+            other.setDeltaMovement(other.getDeltaMovement().add(nx * overlapPush, 0.0, nz * overlapPush));
 
             float yawA = cart.getYRot();
             double radA = Math.toRadians(yawA);
@@ -375,8 +394,10 @@ public class TerracartCollisionHandler {
             Vec3 forwardB = new Vec3(-Math.sin(radB), 0.0, Math.cos(radB));
 
             // Actual travel vectors
+            double travelSignA = (cart.getCurrentSpeed() < -0.001) ? -1.0 : 1.0;
+            double travelSignB = (speedB < -0.001) ? -1.0 : 1.0;
             Vec3 moveA = forwardA.scale(speedA);
-            Vec3 moveB = forwardB.scale(bpsB / 20.0);
+            Vec3 moveB = forwardB.scale(speedB);
 
             // Relative velocity vector (Cart A relative to Cart B)
             Vec3 relVel = moveA.subtract(moveB);
@@ -384,14 +405,6 @@ public class TerracartCollisionHandler {
 
             // Heading alignment
             double dotHeading = forwardA.dot(forwardB);
-
-            // Universal anti-clipping separation push along contact normal (minimal cushion to prevent overlap)
-            double overlapPush = 0.02;
-            cart.setDeltaMovement(cart.getDeltaMovement().add(-nx * overlapPush, 0.0, -nz * overlapPush));
-            other.setDeltaMovement(other.getDeltaMovement().add(nx * overlapPush, 0.0, nz * overlapPush));
-
-            // Cooldown & Stun check for collision events
-            if (cart.getStunTicks() > 0 || other.getStunTicks() > 0 || cart.getCartCollisionCooldown() > 0 || other.getCartCollisionCooldown() > 0) continue;
 
             // ====================================================================================================
             // UNIFIED 2-STATE CART COLLISION SYSTEM: SAFE BUMP (< 8.0 BPS) vs CRITICAL CRASH (>= 8.0 BPS)
@@ -402,11 +415,12 @@ public class TerracartCollisionHandler {
                 // ================================================================================================
                 // RULE 1: CRITICAL CRASH (High-Speed Impact)
                 // ================================================================================================
-                // Dynamic speed-scaled severity progress (0.0 at 8 BPS, 1.0 at 28+ BPS)
-                double crashProgress = Mth.clamp((relBps - 8.0) / 20.0, 0.0, 1.0);
-                float cartDamage = (float) Mth.lerp(crashProgress, 3.0, 10.0);
+                // Dynamic speed-scaled severity progress (0.0 at 8 BPS, 1.0 at 26+ BPS)
+                double crashProgress = Mth.clamp((relBps - 8.0) / 18.0, 0.0, 1.0);
+                float cartDamage = (float) Mth.lerp(crashProgress, 5.0, 15.0);
                 boolean isSevere = relBps > 16.0;
                 float playerDamage = isSevere ? 6.0F : 3.0F;
+                int fuelLossUnits = 1 + cart.getRandom().nextInt(5); // 1 to 5 FU leaked!
 
                 // Dynamic speed-scaled rebound & launch impulse
                 double reboundSpeed = Mth.lerp(crashProgress, 0.15, 0.35);
@@ -427,17 +441,19 @@ public class TerracartCollisionHandler {
                 TerracartEntity faster = aIsFaster ? cart : other;
                 TerracartEntity slower = aIsFaster ? other : cart;
                 Vec3 fasterFwd = aIsFaster ? forwardA : forwardB;
+                double fasterTravelSign = aIsFaster ? travelSignA : travelSignB;
+                Vec3 fasterTravelDir = fasterFwd.scale(fasterTravelSign);
                 double shoveDirX = aIsFaster ? nx : -nx;
                 double shoveDirZ = aIsFaster ? nz : -nz;
 
                 boolean isHeadOn = (dotHeading < -0.4 && bpsA >= 1.0 && bpsB >= 1.0);
                 if (isHeadOn) {
-                    // Symmetrical Head-On rebound: both carts bounce backward along their headings
-                    cart.setDeltaMovement(-forwardA.x * reboundSpeed, 0.06, -forwardA.z * reboundSpeed);
-                    other.setDeltaMovement(-forwardB.x * reboundSpeed, 0.06, -forwardB.z * reboundSpeed);
+                    // Symmetrical Head-On rebound: both carts bounce backward along their headings opposite to travel direction
+                    cart.setDeltaMovement(-forwardA.x * travelSignA * reboundSpeed, 0.06, -forwardA.z * travelSignA * reboundSpeed);
+                    other.setDeltaMovement(-forwardB.x * travelSignB * reboundSpeed, 0.06, -forwardB.z * travelSignB * reboundSpeed);
                 } else {
-                    // Momentum Shove: faster cart bounces back, slower/parked cart is launched away
-                    faster.setDeltaMovement(-fasterFwd.x * reboundSpeed, 0.06, -fasterFwd.z * reboundSpeed);
+                    // Momentum Shove: faster cart bounces back opposite to travel direction, slower/parked cart is launched away
+                    faster.setDeltaMovement(-fasterTravelDir.x * reboundSpeed, 0.06, -fasterTravelDir.z * reboundSpeed);
                     slower.setDeltaMovement(shoveDirX * shoveSpeed, 0.08, shoveDirZ * shoveSpeed);
                 }
 
@@ -445,6 +461,10 @@ public class TerracartCollisionHandler {
                 if (!cart.level().isClientSide() && cart.level() instanceof ServerLevel sl) {
                     cart.setHealth(Math.max(0.0F, cart.getHealth() - cartDamage));
                     other.setHealth(Math.max(0.0F, other.getHealth() - cartDamage));
+
+                    int ticksPerFuelUnit = TerracartEntity.TICKS_PER_FUEL_UNIT;
+                    cart.setFuel(Math.max(0, cart.getFuel() - fuelLossUnits * ticksPerFuelUnit));
+                    other.setFuel(Math.max(0, other.getFuel() - fuelLossUnits * ticksPerFuelUnit));
 
                     // Universal 3.0 HP (1.5 hearts) / 6.0 HP (3.0 hearts) driver whiplash damage
                     if (cart.getControllingPassenger() instanceof Player pA) {
@@ -467,6 +487,9 @@ public class TerracartCollisionHandler {
 
                     if (cart.getHealth() <= 0.0F) TerracartStateManager.executeDestruction(cart, sl);
                     if (other.getHealth() <= 0.0F) TerracartStateManager.executeDestruction(other, sl);
+
+                    cart.needsSync = true;
+                    other.needsSync = true;
                 }
             } else {
                 // ================================================================================================
@@ -487,10 +510,11 @@ public class TerracartCollisionHandler {
                 cart.setCurrentSpeed(0.0);
                 other.setCurrentSpeed(0.0);
 
-                // Server-side universal bump consequences: 1.0 HP chassis damage, metallic clink sound, dense perimeter sparks
+                // Server-side universal bump consequences: 1.0 - 2.0 HP chassis damage, metallic clink sound, dense perimeter sparks
                 if (!cart.level().isClientSide() && cart.level() instanceof ServerLevel sl) {
-                    cart.setHealth(Math.max(0.0F, cart.getHealth() - 1.0F));
-                    other.setHealth(Math.max(0.0F, other.getHealth() - 1.0F));
+                    float bumpDamage = 1.0F + cart.getRandom().nextFloat(); // 1.0 to 2.0 HP
+                    cart.setHealth(Math.max(0.0F, cart.getHealth() - bumpDamage));
+                    other.setHealth(Math.max(0.0F, other.getHealth() - bumpDamage));
 
                     double midX = (cart.getX() + other.getX()) * 0.5;
                     double midY = (cart.getY() + other.getY()) * 0.5 + 0.4;
@@ -570,10 +594,11 @@ public class TerracartCollisionHandler {
         }
 
         // True Wall Crash Impact! (bps >= 8.0)
+        double crashProgress = Mth.clamp((bps - 8.0) / 18.0, 0.0, 1.0);
+        float cartDamage = (float) Mth.lerp(crashProgress, 5.0, 15.0);
         boolean isSevere = bps > 16.0;
-        float cartDamage = isSevere ? 6.0f + cart.getRandom().nextInt(4) : 3.0f + cart.getRandom().nextInt(4);
         float playerDamage = isSevere ? 6.0f : 3.0f; // 3 hearts (6 HP) if severe, 1.5 hearts (3 HP) if medium
-        int fuelLossUnits = 2 + cart.getRandom().nextInt(3); // 2 to 4 FU
+        int fuelLossUnits = 1 + cart.getRandom().nextInt(5); // 1 to 5 FU leaked!
 
         applyImpactConsequences(cart, cartDamage, playerDamage, fuelLossUnits, isSevere, true, dirX, dirZ);
     }
@@ -586,7 +611,8 @@ public class TerracartCollisionHandler {
         cart.setHitCooldown(5);
 
         if (!cart.level().isClientSide() && cart.level() instanceof ServerLevel sl) {
-            cart.setHealth(Math.max(0.0F, cart.getHealth() - 1.0F));
+            float bumpDamage = 1.0F + cart.getRandom().nextFloat(); // 1.0 to 2.0 HP
+            cart.setHealth(Math.max(0.0F, cart.getHealth() - bumpDamage));
 
             sl.playSound(null, cart.getX(), cart.getY(), cart.getZ(), ModSounds.TERRACART_HIT, SoundSource.NEUTRAL, 0.8F, 1.05F);
             TerracartStateManager.spawnPerimeterParticles(sl, cart, ParticleTypes.CRIT, 16, 0.05);
@@ -616,9 +642,9 @@ public class TerracartCollisionHandler {
         if (cart.level().isClientSide()) return;
 
         // --- SERVER ONLY BELOW ---
-        // 3. Fuel Loss (240 ticks per 1 FU)
+        // 3. Fuel Loss (160 ticks per 1 FU)
         int currentFuel = cart.getFuel();
-        cart.setFuel(Math.max(0, currentFuel - fuelLossUnits * 240));
+        cart.setFuel(Math.max(0, currentFuel - fuelLossUnits * TerracartEntity.TICKS_PER_FUEL_UNIT));
 
         // 4. Cart Damage & Destruction Check
         cart.setHealth(cart.getHealth() - cartDamage);

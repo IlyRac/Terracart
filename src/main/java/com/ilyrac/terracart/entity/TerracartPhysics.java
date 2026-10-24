@@ -450,12 +450,26 @@ public class TerracartPhysics {
             double fallDist = cart.getAirborneStartY() - cart.getY();
             cart.setWasAirborne(false);
 
-            // 1 - 3m drop: Safe! (0 damage, 0 fuel loss, 0 player damage, 0 stun)
-            if (fallDist > 3.0) {
-                boolean isSevere = fallDist > 8.0; // 4 - 8m = Medium, > 8m = Severe
-                float cartDamage = isSevere ? 6.0f + cart.getRandom().nextInt(4) : 3.0f + cart.getRandom().nextInt(4);
+            // 0 - 3m drop: Safe ramp / slope landing (0 damage, 0 fuel loss, 0 stun)
+            if (fallDist > 3.0 && fallDist <= 5.0) {
+                // Soft bump landing (3 - 5m): 1.0 - 2.0 HP chassis scrape, zero fuel leak
+                if (!cart.level().isClientSide() && cart.level() instanceof ServerLevel sl) {
+                    float bumpDamage = 1.0F + cart.getRandom().nextFloat(); // 1.0 to 2.0 HP
+                    cart.setHealth(Math.max(0.0F, cart.getHealth() - bumpDamage));
+                    sl.playSound(null, cart.getX(), cart.getY(), cart.getZ(), ModSounds.TERRACART_HIT, SoundSource.NEUTRAL, 0.8F, 1.05F);
+                    TerracartStateManager.spawnPerimeterParticles(sl, cart, ParticleTypes.CRIT, 16, 0.05);
+                    if (cart.getHealth() <= 0.0F) {
+                        TerracartStateManager.executeDestruction(cart, sl);
+                    }
+                    cart.needsSync = true;
+                }
+            } else if (fallDist > 5.0) {
+                // Hard crash landing (> 5m): 5.0 - 15.0 HP, 1 - 5 FU fuel leak, full stun
+                double crashProgress = Mth.clamp((fallDist - 5.0) / 10.0, 0.0, 1.0);
+                float cartDamage = (float) Mth.lerp(crashProgress, 5.0, 15.0);
+                boolean isSevere = fallDist > 9.0;
                 float playerDamage = isSevere ? 6.0f : 3.0f; // 3 hearts (6 HP) if severe, 1.5 hearts (3 HP) if medium
-                int fuelLossUnits = 2 + cart.getRandom().nextInt(3); // 2 to 4 FU
+                int fuelLossUnits = 1 + cart.getRandom().nextInt(5); // 1 to 5 FU leaked!
 
                 TerracartCollisionHandler.applyImpactConsequences(cart, cartDamage, playerDamage, fuelLossUnits, isSevere, false, 0.0, 0.0);
             }

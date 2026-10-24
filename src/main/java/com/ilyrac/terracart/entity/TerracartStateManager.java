@@ -28,12 +28,18 @@ public class TerracartStateManager {
         int fuel = cart.getFuel();
         boolean isMoving = cart.getDeltaMovement().horizontalDistanceSqr() > 0.0001;
         if (fuel > 0 && isMoving) {
-            cart.setFuel(fuel - 1);
-            if (fuel - 1 == 0 && !cart.level().isClientSide()) {
-                cart.level().playSound(null, cart.getX(), cart.getY(), cart.getZ(),
-                        ModSounds.TERRACART_ENGINE_SPUTTERS, SoundSource.NEUTRAL, 1.0f, 1.0f);
-                if (cart.level() instanceof ServerLevel sl) {
-                    spawnPerimeterParticles(sl, cart, new DustParticleOptions(0x111111, 1.2f), 28, 0.03);
+            int newFuel = fuel - 1;
+            cart.setFuelLocal(newFuel);
+            if (!cart.level().isClientSide()) {
+                if (newFuel == 0 || cart.tickCount % 20 == 0) {
+                    cart.syncFuel();
+                }
+                if (newFuel == 0) {
+                    cart.level().playSound(null, cart.getX(), cart.getY(), cart.getZ(),
+                            ModSounds.TERRACART_ENGINE_SPUTTERS, SoundSource.NEUTRAL, 1.0f, 1.0f);
+                    if (cart.level() instanceof ServerLevel sl) {
+                        spawnPerimeterParticles(sl, cart, new DustParticleOptions(0x111111, 1.2f), 28, 0.03);
+                    }
                 }
             }
         }
@@ -105,45 +111,12 @@ public class TerracartStateManager {
 
     public static void updateSoundState(TerracartEntity cart, double speed) {
         boolean active = speed > 0.005 && cart.onGround() && cart.hasFuel();
-
-        float targetVolume = 0.0F;
-        float targetPitch = 1.0F;
-
-        if (active) {
-            double topSpeedBps = cart.getCoreStats().maxSpeed();
-            double maxSpeed = Math.max(0.5, topSpeedBps / 20.0);
-            float speedRatio = (float) Mth.clamp(speed / maxSpeed, 0.0, 1.0);
-
-            // Volume scales naturally with speed: whisper-quiet at crawl, full volume at cruising/top speed
-            targetVolume = (float) Mth.clamp(speedRatio * 1.25, 0.0, 1.0);
-
-            // Option 1: High-RPM Pitch Crescendo
-            if (speedRatio < 0.60F) {
-                // Low-to-mid range: comfortable, steady climb (0.95 -> 1.15)
-                targetPitch = 0.95F + (speedRatio / 0.60F) * 0.20F;
-            } else {
-                // Top 40%: steep exponential ramp screaming up into max speed (1.15 -> 1.55)
-                float highT = (speedRatio - 0.60F) / 0.40F;
-                targetPitch = 1.15F + (highT * highT) * 0.40F;
-            }
-        }
-
-        float vol = cart.getSoundVolume();
-        float pit = cart.getSoundPitch();
-
-        // Responsive fade-in (0.35f) to avoid sluggish dead-air, gentle fade-out (0.15f) for natural stopping
-        float lerp = (targetVolume > vol) ? 0.35f : 0.15f;
-        vol += (targetVolume - vol) * lerp;
-        pit += (targetPitch - pit) * lerp;
-        if (Math.abs(vol) < 0.0005f) vol = 0.0f;
-
-        cart.setSoundActive(active && vol > 0.0f);
-        cart.setSoundVolume(vol);
-        cart.setSoundPitch(pit);
+        cart.setSoundActive(active);
     }
 
     public static void spawnMovementParticles(TerracartEntity cart, double dx, double dz, double speed) {
-        if ((!cart.onGround() && cart.getFluidHeight(FluidTags.WATER) <= 0.0) || !(cart.level() instanceof ServerLevel sl)) return;
+        if (!cart.level().isClientSide()) return; // Purely client-side! Zero server packets!
+        if ((!cart.onGround() && cart.getFluidHeight(FluidTags.WATER) <= 0.0)) return;
         if (speed < 0.01) return;
 
         double dirX = (speed > 0.0001) ? dx / speed : cart.getDeltaMovement().x;
@@ -175,12 +148,12 @@ public class TerracartStateManager {
             double wz = cart.getZ() + wheel[0] * forwardZ + wheel[1] * rightZ + (cart.getRandom().nextDouble() - 0.5) * 0.1;
 
             if (inWater) {
-                sl.sendParticles(ParticleTypes.SPLASH, wx, wy + 0.1, wz, 2, -dirX * 0.12, 0.18, -dirZ * 0.12, 0.04);
+                cart.level().addParticle(ParticleTypes.SPLASH, wx, wy + 0.1, wz, -dirX * 0.12, 0.18, -dirZ * 0.12);
                 if (cart.getRandom().nextBoolean()) {
-                    sl.sendParticles(ParticleTypes.BUBBLE, wx, wy, wz, 1, -dirX * 0.08, 0.08, -dirZ * 0.08, 0.02);
+                    cart.level().addParticle(ParticleTypes.BUBBLE, wx, wy, wz, -dirX * 0.08, 0.08, -dirZ * 0.08);
                 }
             } else {
-                sl.sendParticles(ParticleTypes.SMOKE, wx, wy, wz, 1, -dirX * 0.18, 0.02, -dirZ * 0.18, 0.01);
+                cart.level().addParticle(ParticleTypes.SMOKE, wx, wy, wz, -dirX * 0.18, 0.02, -dirZ * 0.18);
             }
         }
     }

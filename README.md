@@ -1,82 +1,123 @@
-<p align="center">
-  <a href="https://ko-fi.com/ilyrac" target="_blank" rel="noopener">
-    <img src="https://cdn.modrinth.com/data/cached_images/f69e87c0cfd3306fa11c3da477e51544c8d380e2_0.webp" alt="Support Me" style="margin-bottom:10px; max-width:100%;">
-  </a>
-  <a href="https://www.curseforge.com/members/ilyrac/projects" target="_blank" rel="noopener">
-    <img src="https://i.imgur.com/rpoyjVG.png" alt="CurseForge" style="margin:0 5px; max-width:120px;">
-  </a>
-  <a href="https://modrinth.com/user/ilyrac" target="_blank" rel="noopener">
-    <img src="https://i.imgur.com/7fioiRx.png" alt="Modrinth" style="margin:0 5px; max-width:120px;">
-  </a>
-  <a href="https://github.com/IlyRac/Terracart" target="_blank" rel="noopener">
-    <img src="https://i.imgur.com/EYNx6oL.png" alt="GitHub" style="margin:0 5px; max-width:120px;">
-  </a>
-</p>
+## ✨ Features
 
-<hr>
+- 🚙 **Four Vehicle Tiers:** Standard, Swift, Sturdy, and Prime, each with randomized stats.
+- 🗺️ **Exploration & Loot:** Find vehicle cores in structure chests throughout the world.
+- ⚙️ **Driving Physics:** Responsive steering, downhill acceleration, uphill resistance, and terrain-dependent handling across different environments.
+- 💥 **Collisions & Crashes:** Collide with mobs, walls, other vehicles, and the environment. Crashes can damage your vehicle, cause fuel loss, injure the driver, and temporarily stall the engine.
+- ⛽ **Fuel & Repairs:** Refuel with coal and repair your vehicle with iron ingots.
+- 🎨 **Customization:** Paint your vehicle with any of Minecraft's 16 dyes and give it a custom name.
+- 📊 **Driving HUD:** View your speed, fuel, and vehicle health while driving.
+- 🔊 **Custom Sounds:** Unique engine sounds for each tier, plus sounds for braking, shifting, sputtering, impacts, and crashes.
+- ✨ **Visual Effects:** Animated wheels and steering, with particles during movement and collisions and every interaction.
 
-<h1>Terracart – Terrain Cart (v2.0)</h1>
+---
 
-<p>Vanilla-friendly drivable cart — hop in, refuel with <strong>coal</strong>, repair with <strong>iron</strong>, choose one of <strong>16 colors</strong>, name it with a <strong>nametag</strong>, and travel around your world.</p>
+## 🎮 How to Play
 
-<p><img alt="Driving" src="https://github.com/user-attachments/assets/d0f3e2bc-8bda-4f5c-98ef-bb43f346dfa6" style="max-width:100%; margin-bottom:8px;"/></p>
+### 🗺️ 1. Find a Core
 
-<hr>
+Cores cannot be crafted. Find them in structure chests.
 
-<details>
-  <summary>✨ Features</summary>
-  <ul>
-    <li><strong>Drive</strong>: Rideable cart with smooth movement.</li>
-    <li><strong>Name Tag Support</strong>: Customize your vehicle by giving it a name.</li>
-    <li><strong>Model & Animations</strong>: High-quality vehicle model featuring full moving, steering, and turning animations.</li>
-    <li><strong>Fuel</strong>: Consumes fuel only while moving; refuel using <strong>coal</strong>.</li>
-    <li><strong>Repair</strong>: Vehicles take damage from hits and crashes; repair them using <strong>iron</strong>.</li>
-    <li><strong>Colorful</strong>: Personalize your ride with <strong>one of 16 colors</strong>.</li>
-    <li><strong>Survival Balance</strong>: Designed from the ground up to feel like a natural vanilla survival feature.</li>
-    <li><strong>HUD</strong>: On-ride HUD-BOX clearly displays your *speed / fuel / health*.</li>
-    <li><strong>Sound & Particles</strong>: Immersive custom sounds and impact particles for clear gameplay feedback.</li>
-    <li><strong>Damage</strong>: Run down enemies by dealing impact damage to mobs.</li>
-    <li><strong>Vanilla-Friendly</strong>: Built to fit perfectly alongside classic Minecraft mechanics.</li>
-  </ul>
-</details>
+| Core Tier | Location |
+|:--|:--|
+| ⚙️ **Standard** | Village Toolsmith, Weaponsmith, and Armorer chests |
+| 🛡️ **Sturdy** | Nether Fortress chests |
+| ⚡ **Swift** | Bastion Remnant chests |
+| 💎 **Prime** | Ancient City chests |
 
-<details>
-  <summary>🎮 How to use</summary>
-  <ol>
-    <li>Craft the Terracart and <strong>choose a color</strong> (optional) before placing it.</li>
-    <li><strong>Smelt</strong> a colored cart in a furnace to return it to the default cart item.
-      <ul>
-        <li><strong>Note:</strong> carts <strong>do not</strong> drop themselves. To change color you must craft a new cart (or smelt before placing).</li>
-      </ul>
-    </li>
-    <li>Right-click to mount.</li>
-    <li>Use normal movement keys to drive.</li>
-    <li>Use a name tag to name the vehicle.</li>
-    <li><strong>Refuel</strong> with <strong>coal</strong>.</li>
-    <li><strong>Repair</strong> with <strong>iron</strong>.</li>
-    <li>If the cart is <strong>destroyed</strong>, collect dropped materials and rebuild.</li>
-    <li>Travel around your world and have fun.</li>
-  </ol>
-</details>
+Each core has randomized stats:
 
-<details>
-  <summary>🖼️ Gallery</summary>
-  <p>Screenshots taken on the <strong>Umihara City</strong> map by <strong>Shiomate</strong> — huge thanks!</p>
-  <p>Map: <a href="https://www.planetminecraft.com/project/umiharacity/" target="_blank" rel="noopener">Umihara City 海原</a> — Creator: <a href="https://www.planetminecraft.com/member/shiomate/"    target="_blank" rel="noopener">Shiomate</a></p>
+- 🏁 **Top Speed:** 17–25 blocks per second (BPS)
+- ⛽ **Fuel Capacity:** 70–140 Fuel Units (FU)
+- ❤️ **Hull Health:** 70–140 HP
 
-  <img alt="Rise" src="https://github.com/user-attachments/assets/e4454b30-36a4-4b65-9110-4e0f7aa94d29" style="max-width:100%; margin-bottom:8px;"/>
-  <img alt="Cyan" src="https://github.com/user-attachments/assets/5d8ff920-587f-4f52-bea3-c42144f4af0c" style="max-width:100%; margin-bottom:8px;"/>
-  <img alt="Parking" src="https://github.com/user-attachments/assets/91a01aca-a44c-424e-afa8-6a459615ebe0" style="max-width:100%; margin-bottom:8px;"/>
-  <img alt="NameIT" src="https://github.com/user-attachments/assets/af2fe7e9-0f6a-4967-8467-2057e0672f66" /><p align="center">
-  <img alt="AllColors" src="https://github.com/user-attachments/assets/aa8ea39e-a805-49b6-9eaf-ebe686061a35" style="max-width:100%; margin-bottom:8px;"/>
-  <img alt="Steering And Wheels" src="https://github.com/user-attachments/assets/fcc13ff0-d791-4279-a015-522ec938f994" style="max-width:100%; margin-bottom:8px;"/>
-  <img alt="Recipes" src="https://github.com/user-attachments/assets/339c3a76-a341-4381-b3ba-b8fd3f4168aa" style="max-width:100%; margin-bottom:8px;"/>
-</details>
+### 🔧 2. Craft Your Terracart
 
-<hr>
+**Craft Terracart Wheels** using **1 Iron Ingot + 4 Black Wool**.
 
-<h2>📌 Notes</h2>
-<ul>
-    <li><strong>Flashback</strong>: Carts will appear stuttering during recorded replay playback.</li>
-    <li><strong>A Friendly Reminder</strong>: Please drive safe and build a smooth path or track for a better journey!</li>
-</ul>
+Then combine the following in a crafting table:
+
+- 4 × Terracart Wheels
+- 1 × Vehicle Core
+- 1 × Iron Ingot
+- 1 × Saddle
+- 1 × Glass
+- 1 × Minecart
+
+Your Terracart inherits the randomized stats of its core.
+
+### 🕹️ 3. Driving Controls
+
+| Input | Action |
+|:--|:--|
+| **Right-click** | Enter the vehicle |
+| **Hold Shift** | Exit the vehicle |
+| **W** | Accelerate forward |
+| **S** | Brake, then reverse once stopped |
+| **A / D** | Steer left / right |
+
+### ⛽ 4. Fuel, Repairs & Damage
+
+| Action | How It Works |
+|:--|:--|
+| ⛽ **Refuel** | Hold Coal and right-click the vehicle. |
+| **Fuel Rate** | 1 Coal = 15 FU, providing 2 minutes of continuous driving. Fuel is consumed only while moving. |
+| 💥 **Damage** | Crashes, falls, heavy impacts, and explosions can damage the vehicle and injure the driver. |
+| 🔧 **Repair** | Hold an Iron Ingot and right-click the vehicle. |
+| **Repair Rate** | Each Iron Ingot restores 15 HP. |
+
+
+### 💥 5. Collisions, Mobs & Environment
+
+**Vehicle Collisions**
+
+| Collision Speed | Hull Damage | Fuel Loss | Driver Damage | Other Effects |
+|:--|:--|:--|:--|:--|
+| 🟢 **Below 8 BPS** | 1–2 HP | — | — | — |
+| 🔴 **8 BPS or above** | 5–15 HP | 1–5 FU | 1.5–3 hearts | 0.5-second engine stall and recoil |
+
+**Mob Interactions**
+
+| Mob Category | Interaction |
+|:--|:--|
+| 🐾 **Light & Medium Mobs** | Can take up to 22 HP impact damage. |
+| 🧱 **Heavy Mobs** | Act as solid obstacles. High-speed collisions can trigger the full crash consequences. |
+
+**Environmental Interactions**
+
+| Environment | Effect |
+|:--|:--|
+| 🌿 **Leaves** | Increase driving resistance. |
+| 💧 **Shallow Water** | Reduces driving speed. |
+| 🌊 **Deep Water** | Causes vehicles to sink. |
+| 🔥 **Fire & Lava** | Dangerous to vehicles. |
+| 💣 **Explosions** | knock vehicles into the air. |
+
+Terrain also affects driving, including acceleration downhill and resistance uphill.
+
+### 🎨 6. Painting & Naming
+
+- **Paint:** Right-click with any of Minecraft's 16 dyes.
+- **Remove Paint:** Right-click with a Wet Sponge to restore the factory-gray color. In Survival, the sponge becomes a Dry Sponge.
+- **Rename:** Right-click with a Name Tag.
+
+### ♻️ 7. Core Recovery
+
+When a Terracart is destroyed, its core drops with its original randomized stats preserved. Use it to craft another vehicle with the same core attributes.
+
+---
+
+## 📝 Notes & Compatibility
+
+### 🧩 Compatibility
+
+- **Flashback:** Recorded replay playback may cause carts to stutter. **(Fixed in V3.0)**.
+- **Debugify:** enabling the fix for **MC-259512** may cause carts to stutter while turning. **(Fixed in V2.0+26.3)**.
+
+### 🔄 World Migration
+
+When updating from a Terracarts version before **V3.0**, legacy Terracarts will be converted to **Standard Terracarts** under the new random-stat system. Carts placed in the world will receive randomized stats.
+
+### 🚦 A Friendly Reminder
+
+> Drive safely and build smooth paths or tracks for a better journey!

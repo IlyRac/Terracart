@@ -5,6 +5,7 @@ import com.ilyrac.terracart.tier.TerracartTier;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.resources.sounds.AbstractTickableSoundInstance;
 import net.minecraft.sounds.SoundSource;
+import net.minecraft.util.Mth;
 
 public class TerracartSoundInstance extends AbstractTickableSoundInstance {
     private final TerracartEntity cart;
@@ -58,20 +59,30 @@ public class TerracartSoundInstance extends AbstractTickableSoundInstance {
             }
         }
 
-        // Read server-synced core audio values
-        float serverVol = cart.getSoundVolume();
-        float serverPitch = cart.getSoundPitch();
+        // Pure client-side dynamic audio calculations (zero network packets)
+        boolean active = cart.isSoundActive();
+        float maxSpeed = cart.getCoreStats().maxSpeed() / 20.0F;
+        double speed = cart.getDeltaMovement().horizontalDistance();
+        float speedRatio = maxSpeed > 0.001F ? (float) (speed / maxSpeed) : 0.0F;
+        speedRatio = Mth.clamp(speedRatio, 0.0F, 1.0F);
 
-        // Calculate absolute target volume combined with our distance fade modifier
-        float targetVolume = 0.0f;
-        if (cart.getEntityData().get(TerracartEntity.SOUND_ACTIVE)) {
-            targetVolume = serverVol * distanceFadeFactor;
+        float targetVolume = 0.0F;
+        float targetPitch = 0.85F;
+
+        if (active) {
+            targetVolume = (0.25F + speedRatio * 0.75F) * distanceFadeFactor;
+            if (speedRatio < 0.60F) {
+                targetPitch = 0.95F + (speedRatio / 0.60F) * 0.20F;
+            } else {
+                float highT = (speedRatio - 0.60F) / 0.40F;
+                targetPitch = 1.15F + (highT * highT) * 0.40F;
+            }
         }
 
         // Smoothly interpolate transitions (brisk 0.35f fade-in to eliminate dead air, gentle 0.15f fade-out)
         float lerpRate = (targetVolume > this.volume) ? 0.35f : 0.15f;
         this.volume += (targetVolume - this.volume) * lerpRate;
-        this.pitch  += (serverPitch - this.pitch) * lerpRate;
+        this.pitch  += (targetPitch - this.pitch) * lerpRate;
 
         if (this.volume < 0.005f) {
             this.volume = 0.0f;

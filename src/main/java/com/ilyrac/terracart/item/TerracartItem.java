@@ -72,7 +72,7 @@ public class TerracartItem extends Item {
         entity.setCoreStats(Objects.requireNonNullElseGet(stats, () -> TerracartCoreStats.forRandomTier(this.tier, serverLevel.getRandom())));
         entity.setHealth(entity.getMaxHealth());
         int startFuel = 5 + serverLevel.getRandom().nextInt(11); // 5 to 15 FU
-        entity.setFuel(startFuel * 240);
+        entity.setFuel(startFuel * TerracartEntity.TICKS_PER_FUEL_UNIT);
 
         serverLevel.addFreshEntity(entity);
         stack.shrink(1);

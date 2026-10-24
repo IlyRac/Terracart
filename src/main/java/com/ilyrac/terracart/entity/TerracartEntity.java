@@ -54,6 +54,8 @@ public class TerracartEntity extends VehicleEntity {
         this.entityData.set(CORE_MAX_CONDITION, stats.maxCondition());
     }
 
+    public static final int TICKS_PER_FUEL_UNIT = 160; // 1 FU = 160 ticks = 8.0s. 15 FU (1 Coal) = 2,400 ticks = 2.0 minutes.
+
     public float getMaxHealth() {
         int condition = this.entityData.get(CORE_MAX_CONDITION);
         return condition > 0 ? (float) condition : 100.0f;
@@ -61,7 +63,7 @@ public class TerracartEntity extends VehicleEntity {
 
     public int getMaxFuel() {
         int fuelStat = this.entityData.get(CORE_MAX_FUEL);
-        return fuelStat > 0 ? fuelStat * 240 : 24000;
+        return fuelStat > 0 ? fuelStat * TICKS_PER_FUEL_UNIT : 100 * TICKS_PER_FUEL_UNIT;
     }
 
     // --- 1. HEALTH SYSTEM ---
@@ -73,9 +75,19 @@ public class TerracartEntity extends VehicleEntity {
 
     // --- 2. FUEL SYSTEM ---
     private static final EntityDataAccessor<Integer> FUEL_TICKS = SynchedEntityData.defineId(TerracartEntity.class, EntityDataSerializers.INT);
+    private int localFuel = 100 * TICKS_PER_FUEL_UNIT;
 
-    public int getFuel() { return this.entityData.get(FUEL_TICKS); }
-    public void setFuel(int ticks) { this.entityData.set(FUEL_TICKS, Math.min(ticks, this.getMaxFuel())); }
+    public int getFuel() { return this.localFuel; }
+    public void setFuel(int ticks) {
+        this.localFuel = Math.min(ticks, this.getMaxFuel());
+        this.entityData.set(FUEL_TICKS, this.localFuel);
+    }
+    public void setFuelLocal(int ticks) {
+        this.localFuel = Math.min(ticks, this.getMaxFuel());
+    }
+    public void syncFuel() {
+        this.entityData.set(FUEL_TICKS, this.localFuel);
+    }
     public boolean hasFuel() { return this.getFuel() > 0; }
     public float getFuelPercent() { return (float) this.getFuel() / (float) this.getMaxFuel(); }
 
@@ -173,25 +185,20 @@ public class TerracartEntity extends VehicleEntity {
 
     // --- 4. AUDIO & COSMETICS ---
     public static final EntityDataAccessor<Boolean> SOUND_ACTIVE = SynchedEntityData.defineId(TerracartEntity.class, EntityDataSerializers.BOOLEAN);
-    public static final EntityDataAccessor<Float> SOUND_VOLUME = SynchedEntityData.defineId(TerracartEntity.class, EntityDataSerializers.FLOAT);
-    public static final EntityDataAccessor<Float> SOUND_PITCH = SynchedEntityData.defineId(TerracartEntity.class, EntityDataSerializers.FLOAT);
     private static final EntityDataAccessor<Integer> CART_COLOR = SynchedEntityData.defineId(TerracartEntity.class, EntityDataSerializers.INT);
-    private static final EntityDataAccessor<Float> WHEEL_ROTATION = SynchedEntityData.defineId(TerracartEntity.class, EntityDataSerializers.FLOAT);
     public static final EntityDataAccessor<Float> WHEEL_TURNING = SynchedEntityData.defineId(TerracartEntity.class, EntityDataSerializers.FLOAT);
     public static final EntityDataAccessor<Float> DRIVER_FORWARD = SynchedEntityData.defineId(TerracartEntity.class, EntityDataSerializers.FLOAT);
 
+    // Client-side local wheel rotation (zero network packets)
+    private float wheelRotation = 0.0f;
     private float prevWheelRotation = 0.0f;
 
     public void setCartColor(int color) { this.entityData.set(CART_COLOR, color < 0 ? -1 : Math.min(15, color)); }
     public int getCartColor() { return this.entityData.get(CART_COLOR); }
-    public float getWheelRotation() { return this.entityData.get(WHEEL_ROTATION); }
+    public float getWheelRotation() { return this.wheelRotation; }
     public float getPrevWheelRotation() { return this.prevWheelRotation; }
     public void setSoundActive(boolean active) { this.entityData.set(SOUND_ACTIVE, active); }
     public boolean isSoundActive() { return this.entityData.get(SOUND_ACTIVE); }
-    public float getSoundVolume() { return this.entityData.get(SOUND_VOLUME); }
-    public void setSoundVolume(float volume) { this.entityData.set(SOUND_VOLUME, volume); }
-    public float getSoundPitch() { return this.entityData.get(SOUND_PITCH); }
-    public void setSoundPitch(float pitch) { this.entityData.set(SOUND_PITCH, pitch); }
 
     public TerracartTier getTier() {
         if (this.getType() == ModEntities.SWIFT_TERRACART) return TerracartTier.SWIFT;
@@ -224,7 +231,7 @@ public class TerracartEntity extends VehicleEntity {
         this.setCoreStats(com.ilyrac.terracart.component.TerracartCoreStats.forRandomTier(tier, this.random));
         this.setHealth(this.getMaxHealth());
         int startFuel = 5 + this.random.nextInt(11); // 5 to 15 FU
-        this.setFuel(startFuel * 240);
+        this.setFuel(startFuel * TICKS_PER_FUEL_UNIT);
     }
 
     @Override
@@ -234,11 +241,8 @@ public class TerracartEntity extends VehicleEntity {
                 .define(CORE_MAX_FUEL, 100)
                 .define(CORE_MAX_CONDITION, 100)
                 .define(CART_COLOR, -1)
-                .define(FUEL_TICKS, 24000)
-                .define(WHEEL_ROTATION, 0.0f)
+                .define(FUEL_TICKS, 100 * TICKS_PER_FUEL_UNIT)
                 .define(SOUND_ACTIVE, false)
-                .define(SOUND_VOLUME, 0.0f)
-                .define(SOUND_PITCH, 1.0f)
                 .define(CURRENT_HEALTH, 100.0f)
                 .define(WHEEL_TURNING, 0.0f)
                 .define(DRIVER_FORWARD, 0.0f)
@@ -270,8 +274,18 @@ public class TerracartEntity extends VehicleEntity {
             // Legacy cart or summon without stats: roll random stats within tier range!
             setCoreStats(com.ilyrac.terracart.component.TerracartCoreStats.forRandomTier(this.getTier(), this.random));
         }
-        setFuel(in.getIntOr("FuelTicks", this.getMaxFuel()));
+        int savedFuel = in.getIntOr("FuelTicks", this.getMaxFuel());
+        this.localFuel = savedFuel;
+        this.entityData.set(FUEL_TICKS, savedFuel);
         setHealth(in.getFloatOr("Health", this.getMaxHealth()));
+    }
+
+    @Override
+    public void onSyncedDataUpdated(@NonNull EntityDataAccessor<?> key) {
+        super.onSyncedDataUpdated(key);
+        if (FUEL_TICKS.equals(key)) {
+            this.localFuel = this.entityData.get(FUEL_TICKS);
+        }
     }
 
     public float getSyncedStrafe() {
@@ -341,12 +355,19 @@ public class TerracartEntity extends VehicleEntity {
 
         float yawRad = (float) Math.toRadians(this.getYRot());
         double signedDistance = dx * (-Math.sin(yawRad)) + dz * Math.cos(yawRad);
-        this.entityData.set(WHEEL_ROTATION, this.prevWheelRotation + (float) (-signedDistance / 0.35f));
+        this.wheelRotation = this.prevWheelRotation + (float) (-signedDistance / 0.35f);
 
         this.setXRot(0.0F);
 
-        TerracartCollisionHandler.handleCollisions(this, speedSq);
-        TerracartCollisionHandler.handleCartToCartCollisions(this, speedSq);
+        // Collision scanning: scan if cart has engine throttle, physical velocity, or displacement
+        boolean isMoving = Math.abs(this.currentSpeed) > 0.01
+                || this.getDeltaMovement().horizontalDistanceSqr() > 1.0E-5
+                || speedSq > 1.0E-5;
+        if (isMoving) {
+            double effectiveSpeed = Math.max(speedSq, Math.abs(this.currentSpeed));
+            TerracartCollisionHandler.handleCollisions(this, effectiveSpeed);
+            TerracartCollisionHandler.handleCartToCartCollisions(this, effectiveSpeed);
+        }
 
         lastX = this.getX(); lastZ = this.getZ();
 
