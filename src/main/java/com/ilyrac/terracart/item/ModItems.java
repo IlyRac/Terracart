@@ -1,7 +1,9 @@
 package com.ilyrac.terracart.item;
 
 import com.ilyrac.terracart.Terracart;
+import com.ilyrac.terracart.tier.TerracartTier;
 import net.fabricmc.fabric.api.creativetab.v1.CreativeModeTabEvents;
+import net.fabricmc.fabric.api.event.registry.FabricRegistry;
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
@@ -21,49 +23,103 @@ public class ModItems {
         return Registry.register(BuiltInRegistries.ITEM, itemKey, item);
     }
 
-    // --- Core Items ---
+    // --- Core Components ---
     public static final Item TERRRACART_WHEEL = register("terracart_wheel",
             Item::new,
             new Item.Properties().stacksTo(16));
 
-    public static final Item TERRACART = register("terracart",
-            TerracartItem::new,
+    // --- Tiered Terracarts ---
+    public static final TerracartItem STANDARD_TERRACART = register("standard_terracart",
+            props -> new TerracartItem(TerracartTier.STANDARD, props),
             new Item.Properties().stacksTo(1));
 
-    // --- Colored Variants ---
-    private static final String[] COLOR_NAMES = {
+    public static final TerracartItem SWIFT_TERRACART = register("swift_terracart",
+            props -> new TerracartItem(TerracartTier.SWIFT, props),
+            new Item.Properties().stacksTo(1));
+
+    public static final TerracartItem STURDY_TERRACART = register("sturdy_terracart",
+            props -> new TerracartItem(TerracartTier.STURDY, props),
+            new Item.Properties().stacksTo(1));
+
+    public static final TerracartItem PRIME_TERRACART = register("prime_terracart",
+            props -> new TerracartItem(TerracartTier.PRIME, props),
+            new Item.Properties().stacksTo(1));
+
+    // --- Tiered Terracart Cores ---
+    public static final TerracartCoreItem STANDARD_TERRACART_CORE = register("standard_terracart_core",
+            props -> new TerracartCoreItem(TerracartTier.STANDARD, props),
+            new Item.Properties().stacksTo(1));
+
+    public static final TerracartCoreItem SWIFT_TERRACART_CORE = register("swift_terracart_core",
+            props -> new TerracartCoreItem(TerracartTier.SWIFT, props),
+            new Item.Properties().stacksTo(1));
+
+    public static final TerracartCoreItem STURDY_TERRACART_CORE = register("sturdy_terracart_core",
+            props -> new TerracartCoreItem(TerracartTier.STURDY, props),
+            new Item.Properties().stacksTo(1));
+
+    public static final TerracartCoreItem PRIME_TERRACART_CORE = register("prime_terracart_core",
+            props -> new TerracartCoreItem(TerracartTier.PRIME, props),
+            new Item.Properties().stacksTo(1));
+
+    public static TerracartItem getCartItemFor(TerracartTier tier) {
+        return switch (tier) {
+            case SWIFT -> SWIFT_TERRACART;
+            case STURDY -> STURDY_TERRACART;
+            case PRIME -> PRIME_TERRACART;
+            case STANDARD -> STANDARD_TERRACART;
+        };
+    }
+
+    public static TerracartCoreItem getCoreItemFor(TerracartTier tier) {
+        return switch (tier) {
+            case SWIFT -> SWIFT_TERRACART_CORE;
+            case STURDY -> STURDY_TERRACART_CORE;
+            case PRIME -> PRIME_TERRACART_CORE;
+            case STANDARD -> STANDARD_TERRACART_CORE;
+        };
+    }
+
+    // --- Legacy Aliases List ---
+    private static final String[] LEGACY_COLOR_NAMES = {
             "white", "orange", "magenta", "light_blue", "yellow", "lime", "pink", "gray",
             "light_gray", "cyan", "purple", "blue", "brown", "green", "red", "black"
     };
-    public static final Item[] COLORED_TERRACARTS = new Item[16];
 
-    static {
-        for (int i = 0; i < COLOR_NAMES.length; i++) {
-            final int colorId = i;
-            String registryName = COLOR_NAMES[i] + "_terracart";
-            COLORED_TERRACARTS[i] = register(
-                    registryName,
-                    props -> new TerracartItem(colorId, props),
-                    new Item.Properties().stacksTo(1)
-            );
-        }
-    }
-
-    // --- Creative Tab Hook ---
+    // --- Creative Tab & Aliasing Hooks ---
     public static void initialize() {
-        CreativeModeTabEvents.modifyOutputEvent(CreativeModeTabs.TOOLS_AND_UTILITIES).register(entries -> {
-            entries.insertAfter(Items.TNT_MINECART, TERRACART);
+        // 1. Registry Aliasing: Map old colored carts and legacy base cart to standard_terracart
+        Identifier standardCartId = Identifier.fromNamespaceAndPath(Terracart.MOD_ID, "standard_terracart");
+        FabricRegistry itemRegistry = (FabricRegistry) BuiltInRegistries.ITEM;
 
-            // Insert colored items right after the base cart
-            Item lastInserted = TERRACART;
-            for (Item it : COLORED_TERRACARTS) {
-                entries.insertAfter(lastInserted, it);
-                lastInserted = it; // Keeps them sequentially ordered in the tab
-            }
+        // Legacy uncolored cart
+        itemRegistry.addAlias(Identifier.fromNamespaceAndPath(Terracart.MOD_ID, "terracart"), standardCartId);
+
+        // Legacy 16 colored carts
+        for (String color : LEGACY_COLOR_NAMES) {
+            itemRegistry.addAlias(Identifier.fromNamespaceAndPath(Terracart.MOD_ID, color + "_terracart"), standardCartId);
+        }
+
+        // 2. Creative Tabs Hooks
+        CreativeModeTabEvents.modifyOutputEvent(CreativeModeTabs.TOOLS_AND_UTILITIES).register(entries -> {
+            entries.insertAfter(Items.TNT_MINECART, STANDARD_TERRACART);
+            entries.insertAfter(STANDARD_TERRACART, SWIFT_TERRACART);
+            entries.insertAfter(SWIFT_TERRACART, STURDY_TERRACART);
+            entries.insertAfter(STURDY_TERRACART, PRIME_TERRACART);
+
+            // Cores in Tools & Utilities (uncalibrated base items)
+            entries.insertAfter(PRIME_TERRACART, STANDARD_TERRACART_CORE);
+            entries.insertAfter(STANDARD_TERRACART_CORE, SWIFT_TERRACART_CORE);
+            entries.insertAfter(SWIFT_TERRACART_CORE, STURDY_TERRACART_CORE);
+            entries.insertAfter(STURDY_TERRACART_CORE, PRIME_TERRACART_CORE);
         });
 
-        CreativeModeTabEvents.modifyOutputEvent(CreativeModeTabs.INGREDIENTS).register(
-                entries -> entries.insertAfter(Items.PHANTOM_MEMBRANE, TERRRACART_WHEEL)
-        );
+        CreativeModeTabEvents.modifyOutputEvent(CreativeModeTabs.INGREDIENTS).register(entries -> {
+            entries.insertAfter(Items.PHANTOM_MEMBRANE, TERRRACART_WHEEL);
+            entries.insertAfter(TERRRACART_WHEEL, STANDARD_TERRACART_CORE);
+            entries.insertAfter(STANDARD_TERRACART_CORE, SWIFT_TERRACART_CORE);
+            entries.insertAfter(SWIFT_TERRACART_CORE, STURDY_TERRACART_CORE);
+            entries.insertAfter(STURDY_TERRACART_CORE, PRIME_TERRACART_CORE);
+        });
     }
 }

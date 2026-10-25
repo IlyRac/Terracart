@@ -3,18 +3,24 @@ package com.ilyrac.terracart.entity;
 import com.ilyrac.terracart.ModSounds;
 import com.ilyrac.terracart.item.ModItems;
 import net.minecraft.core.component.DataComponents;
+import net.minecraft.core.particles.ItemParticleOption;
+import net.minecraft.core.particles.ParticleOptions;
 import net.minecraft.core.particles.ParticleTypes;
-import net.minecraft.core.particles.SimpleParticleType;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundSource;
+import net.minecraft.tags.DamageTypeTags;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.world.item.DyeColor;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.phys.Vec3;
 
 
 public class TerracartInteractionHandler {
@@ -39,37 +45,101 @@ public class TerracartInteractionHandler {
             }
         }
 
-        // 1. Repair Mechanic
+        // 1. Repair Mechanic (+15 HP via Iron Ingot)
+        // Prevent wasting an iron ingot if missing less than 3 HP (nearly/fully repaired)
         if (stack.is(Items.IRON_INGOT)) {
-            if (cart.getHealth() >= TerracartEntity.MAX_HEALTH) {
-                player.sendOverlayMessage(Component.literal("Terracart is already fully repaired."));
+            if (cart.getMaxHealth() - cart.getHealth() < 3.0f) {
+                player.sendOverlayMessage(Component.literal("Terracart is already in good condition."));
                 return InteractionResult.SUCCESS;
             }
-            cart.setHealth(cart.getHealth() + (TerracartEntity.MAX_HEALTH * 0.25f));
-            playSpecialEffect(cart, ModSounds.TERRACART_REPAIR, ParticleTypes.EGG_CRACK, 12);
+            cart.setHealth(Math.min(cart.getMaxHealth(), cart.getHealth() + 15.0f));
+            playSpecialEffect(cart, ModSounds.TERRACART_REPAIR, ParticleTypes.EGG_CRACK, 28);
             if (!player.isCreative()) stack.shrink(1);
-            player.sendOverlayMessage(Component.literal("Terracart repaired (+25%)"));
+            player.sendOverlayMessage(Component.literal("Terracart repaired (+15 HP)"));
             return InteractionResult.SUCCESS;
         }
 
-        // 2. Refueling Mechanic
+        // 2. Refueling Mechanic (+15 FU per Coal = 15 * 160 ticks = 2.0 min drive time)
+        // Strictly pure Coal only (no charcoal). Prevent wasting coal if missing less than 3 FU.
         if (stack.is(Items.COAL)) {
-            if (cart.getFuel() > (TerracartEntity.MAX_FUEL * 0.90)) {
+            int ticksPerUnit = TerracartEntity.TICKS_PER_FUEL_UNIT;
+            if (cart.getMaxFuel() - cart.getFuel() < 3 * ticksPerUnit) {
                 player.sendOverlayMessage(Component.literal("Fuel tank is already full!"));
                 return InteractionResult.SUCCESS;
             }
-            if (cart.getFuel() > (TerracartEntity.MAX_FUEL * 0.80)) {
-                player.sendOverlayMessage(Component.literal("Fuel tank is nearly full!"));
-                return InteractionResult.SUCCESS;
-            }
-            cart.setFuel(Math.min(cart.getFuel() + (int) (TerracartEntity.MAX_FUEL * 0.25), TerracartEntity.MAX_FUEL));
-            playSpecialEffect(cart, ModSounds.TERRACART_REFUEL, ParticleTypes.CAMPFIRE_COSY_SMOKE, 6);
+            cart.setFuel(Math.min(cart.getMaxFuel(), cart.getFuel() + (15 * ticksPerUnit)));
+            playSpecialEffect(cart, ModSounds.TERRACART_REFUEL, ParticleTypes.CAMPFIRE_COSY_SMOKE, 18);
             if (!player.isCreative()) stack.shrink(1);
-            player.sendOverlayMessage(Component.literal("TerraCart refueled (+25%)"));
+            player.sendOverlayMessage(Component.literal("Terracart refueled (+15 FU)"));
             return InteractionResult.SUCCESS;
         }
 
-        // 3. Mount Passenger
+        // 3. Paint Stripping with Wet Sponge
+        if (stack.is(Items.WET_SPONGE)) {
+            if (cart.getCartColor() == -1) {
+                if (!cart.level().isClientSide()) {
+                    player.sendOverlayMessage(Component.literal("Terracart is already in factory paint."));
+                }
+                return InteractionResult.SUCCESS;
+            }
+
+            if (!cart.level().isClientSide()) {
+                cart.setCartColor(-1);
+                playSpecialEffect(cart, SoundEvents.BUCKET_EMPTY, ParticleTypes.SPLASH, 36);
+
+                // Survival only: Wet Sponge turns into Dry Sponge
+                if (!player.isCreative()) {
+                    if (stack.getCount() == 1) {
+                        player.setItemInHand(hand, new ItemStack(Items.SPONGE));
+                    } else {
+                        stack.shrink(1);
+                        ItemStack drySponge = new ItemStack(Items.SPONGE);
+                        if (!player.getInventory().add(drySponge)) {
+                            if (cart.level() instanceof ServerLevel sl) {
+                                sl.addFreshEntity(new ItemEntity(sl, player.getX(), player.getY(), player.getZ(), drySponge));
+                            }
+                        }
+                    }
+                }
+                player.sendOverlayMessage(Component.literal("Paint stripped back to factory gray."));
+            }
+            return InteractionResult.SUCCESS;
+        }
+
+        // 4. Painting with Dye
+        DyeColor dyeColor = stack.get(DataComponents.DYE);
+        if (dyeColor != null) {
+            // Must strip existing paint first
+            if (cart.getCartColor() != -1) {
+                if (!cart.level().isClientSide()) {
+                    player.sendOverlayMessage(Component.literal("Strip the existing paint with a Wet Sponge first!"));
+                }
+                return InteractionResult.SUCCESS;
+            }
+
+            // Cannot apply Gray Dye to default factory paint (which is already gray)
+            if (dyeColor == DyeColor.GRAY) {
+                if (!cart.level().isClientSide()) {
+                    player.sendOverlayMessage(Component.literal("This Terracart is already in its default factory gray!"));
+                }
+                return InteractionResult.SUCCESS;
+            }
+
+            if (!cart.level().isClientSide()) {
+                cart.setCartColor(dyeColor.getId());
+                playSpecialEffect(cart, SoundEvents.DYE_USE, new ItemParticleOption(ParticleTypes.ITEM, stack.getItem()), 32);
+                if (!player.isCreative()) {
+                    stack.shrink(1);
+                }
+                String colorName = dyeColor.getName().replace('_', ' ');
+                String formattedColor = Character.toUpperCase(colorName.charAt(0)) + colorName.substring(1);
+                player.sendOverlayMessage(Component.literal("Terracart painted " + formattedColor + "."));
+            }
+            return InteractionResult.SUCCESS;
+        }
+
+        // 5. Mount Passenger
+
         if (cart.canAddPassenger(player) && cart.getPassengers().isEmpty()) {
             if (!cart.level().isClientSide()) {
                 player.startRiding(cart);
@@ -81,13 +151,63 @@ public class TerracartInteractionHandler {
     }
 
     // Moved damage logic here
-    public static boolean handleHurtServer(TerracartEntity cart, ServerLevel sl, float amount) {
+    public static boolean handleHurtServer(TerracartEntity cart, ServerLevel sl, DamageSource src, float amount) {
         // Clean and safe: no more 'isInvulnerable' errors here!
         if (cart.isRemoved()) return false;
 
-        cart.setHealth(cart.getHealth() - (amount * 0.7f));
-        sl.playSound(null, cart.getX(), cart.getY(), cart.getZ(), ModSounds.TERRACART_HIT, SoundSource.NEUTRAL, 1.0F, 1.0F + (cart.getRandom().nextFloat() - 0.5F) * 0.2F);
-        sl.sendParticles(ParticleTypes.SQUID_INK, cart.getX(), cart.getY() + 1.5, cart.getZ(), 5, 0.25, 0.25, 0.25, 0.1);
+        // 1. 100% 1:1 Damage Ratio (1 damage = 1 condition HP)
+        cart.setHealth(Math.max(0.0F, cart.getHealth() - amount));
+
+        // 2. Physical Impulse, Feedback & Stun: Explosion Blast Wave vs Subtle Melee Nudge
+        if (src.is(DamageTypeTags.IS_EXPLOSION)) {
+            boolean isMajorBlast = amount >= 5.0F;
+            float soundPitch = amount > 20.0F ? 0.9F : 1.0F;
+            sl.playSound(null, cart.getX(), cart.getY(), cart.getZ(), isMajorBlast ? ModSounds.TERRACART_CRASH : ModSounds.TERRACART_HIT, SoundSource.NEUTRAL, 0.85F, soundPitch);
+            TerracartStateManager.spawnPerimeterParticles(sl, cart, ParticleTypes.CRIT, isMajorBlast ? 32 : 16, 0.08);
+            if (isMajorBlast) {
+                TerracartStateManager.spawnPerimeterParticles(sl, cart, ParticleTypes.POOF, 18, 0.04);
+            }
+
+            net.minecraft.world.entity.Entity sourceEntity = src.getDirectEntity() != null ? src.getDirectEntity() : src.getEntity();
+            Vec3 blastCenter = src.getSourcePosition() != null ? src.getSourcePosition() : (sourceEntity != null ? sourceEntity.position() : null);
+            Vec3 blastDir;
+            if (blastCenter != null) {
+                Vec3 diff = cart.position().subtract(blastCenter);
+                blastDir = diff.horizontalDistanceSqr() > 1.0E-4 
+                        ? new Vec3(diff.x, 0.0, diff.z).normalize() 
+                        : new Vec3(cart.getRandom().nextDouble() - 0.5, 0.0, cart.getRandom().nextDouble() - 0.5).normalize();
+            } else {
+                blastDir = new Vec3(cart.getRandom().nextDouble() - 0.5, 0.0, cart.getRandom().nextDouble() - 0.5).normalize();
+            }
+            double blastForce = Math.min(1.0, 0.35 + (amount / 40.0) * 0.45);
+            double blastY = Math.clamp(0.32 + (amount / 40.0) * 0.24, 0.32, 0.56);
+            cart.setDeltaMovement(blastDir.x * blastForce, blastY, blastDir.z * blastForce);
+            cart.setCurrentSpeed(0.0);
+            cart.setStunTicks(isMajorBlast ? 10 : 5);
+            cart.setHitCooldown(isMajorBlast ? 10 : 5);
+
+            // Universal Fuel Leak for Explosions (1 to 5 FU leaked on major blast)
+            if (isMajorBlast) {
+                int fuelLossUnits = 1 + cart.getRandom().nextInt(5);
+                cart.setFuel(Math.max(0, cart.getFuel() - fuelLossUnits * TerracartEntity.TICKS_PER_FUEL_UNIT));
+            }
+
+            cart.needsSync = true;
+        } else {
+            // Generic melee / projectile hit: hit clink and subtle crit sparks
+            sl.playSound(null, cart.getX(), cart.getY(), cart.getZ(), ModSounds.TERRACART_HIT, SoundSource.NEUTRAL, 1.0F, 1.0F + (cart.getRandom().nextFloat() - 0.5F) * 0.2F);
+            TerracartStateManager.spawnPerimeterParticles(sl, cart, ParticleTypes.CRIT, 16, 0.08);
+
+            if (src.getEntity() != null) {
+                Vec3 diff = cart.position().subtract(src.getEntity().position());
+                Vec3 hitDir = diff.horizontalDistanceSqr() > 1.0E-4 
+                        ? new Vec3(diff.x, 0.0, diff.z).normalize() 
+                        : new Vec3(0.0, 0.0, 1.0);
+                double nudge = 0.06;
+                cart.setDeltaMovement(hitDir.x * nudge, 0.0, hitDir.z * nudge);
+                cart.needsSync = true;
+            }
+        }
 
         if (cart.getHealth() <= 0) {
             TerracartStateManager.executeDestruction(cart, sl);
@@ -95,10 +215,10 @@ public class TerracartInteractionHandler {
         return true;
     }
 
-    private static void playSpecialEffect(TerracartEntity cart, SoundEvent sound, SimpleParticleType particle, int count) {
+    private static void playSpecialEffect(TerracartEntity cart, SoundEvent sound, ParticleOptions particle, int count) {
         if (cart.level() instanceof ServerLevel sl) {
             sl.playSound(null, cart.getX(), cart.getY(), cart.getZ(), sound, SoundSource.BLOCKS, 1.0f, 1.0f + (cart.getRandom().nextFloat() - 0.5f) * 0.15f);
-            sl.sendParticles(particle, cart.getX(), cart.getY() + 1.5, cart.getZ(), count, 0.25, 0.25, 0.25, 0.1);
+            TerracartStateManager.spawnPerimeterParticles(sl, cart, particle, count, 0.05);
         }
     }
 
@@ -109,10 +229,8 @@ public class TerracartInteractionHandler {
 
     // Moved from TerracartEntity
     public static ItemStack handlePickResult(TerracartEntity cart) {
-        int color = cart.getCartColor();
-        if (color >= 0 && color < ModItems.COLORED_TERRACARTS.length) {
-            return new ItemStack(ModItems.COLORED_TERRACARTS[color]);
-        }
-        return new ItemStack(ModItems.TERRACART);
+        ItemStack stack = new ItemStack(ModItems.getCartItemFor(cart.getTier()));
+        stack.set(com.ilyrac.terracart.component.ModDataComponents.CORE_STATS, cart.getCoreStats());
+        return stack;
     }
 }

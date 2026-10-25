@@ -19,19 +19,29 @@ import net.minecraft.resources.Identifier;
 
 public class TerracartClient implements ClientModInitializer {
 
+	private static float lastSentForward = 0.0f;
+	private static float lastSentStrafe = 0.0f;
+	private static int inputHeartbeat = 0;
+
 	@Override
 	public void onInitializeClient() {
 		// --- 1. REGISTER RENDERERS & MODELS ---
-		//noinspection deprecation
-		EntityRendererRegistry.register(
-				ModEntities.TERRACART,
-				TerracartRenderer::new
-		);
+		EntityRendererRegistry.register(ModEntities.STANDARD_TERRACART, TerracartRenderer::new);
+		EntityRendererRegistry.register(ModEntities.SWIFT_TERRACART, TerracartRenderer::new);
+		EntityRendererRegistry.register(ModEntities.STURDY_TERRACART, TerracartRenderer::new);
+		EntityRendererRegistry.register(ModEntities.PRIME_TERRACART, TerracartRenderer::new);
 
-		ModelLayerRegistry.registerModelLayer(
-				TerracartModel.LAYER,
-				TerracartModel::createBodyLayer
-		);
+		// Base Model Layers
+		ModelLayerRegistry.registerModelLayer(TerracartModel.STANDARD_LAYER, TerracartModel::createStandardBaseLayer);
+		ModelLayerRegistry.registerModelLayer(TerracartModel.SWIFT_LAYER, TerracartModel::createSwiftBaseLayer);
+		ModelLayerRegistry.registerModelLayer(TerracartModel.STURDY_LAYER, TerracartModel::createSturdyBaseLayer);
+		ModelLayerRegistry.registerModelLayer(TerracartModel.PRIME_LAYER, TerracartModel::createPrimeBaseLayer);
+
+		// Overlay Model Layers (Panels)
+		ModelLayerRegistry.registerModelLayer(TerracartModel.STANDARD_OVERLAY_LAYER, TerracartModel::createStandardOverlayLayer);
+		ModelLayerRegistry.registerModelLayer(TerracartModel.SWIFT_OVERLAY_LAYER, TerracartModel::createSwiftOverlayLayer);
+		ModelLayerRegistry.registerModelLayer(TerracartModel.STURDY_OVERLAY_LAYER, TerracartModel::createSturdyOverlayLayer);
+		ModelLayerRegistry.registerModelLayer(TerracartModel.PRIME_OVERLAY_LAYER, TerracartModel::createPrimeOverlayLayer);
 
 		// --- 2. REGISTER HUD ELEMENTS ---
 		HudElementRegistry.attachElementAfter(
@@ -44,14 +54,22 @@ public class TerracartClient implements ClientModInitializer {
 		ClientTickEvents.END_CLIENT_TICK.register(client -> {
 			if (client.level == null || client.player == null) return;
 
-			// Handle Input Packet
+			// Handle Input Packet with smart throttling (only send when inputs change or on 20-tick heartbeat)
 			if (client.player.getVehicle() instanceof TerracartEntity) {
-				ClientPlayNetworking.send(
-						new TerracartInputPayload(
-								client.player.zza,
-								-client.player.xxa
-						)
-				);
+				float fwd = client.player.zza;
+				float str = -client.player.xxa;
+				inputHeartbeat++;
+
+				if (fwd != lastSentForward || str != lastSentStrafe || inputHeartbeat >= 20) {
+					ClientPlayNetworking.send(new TerracartInputPayload(fwd, str));
+					lastSentForward = fwd;
+					lastSentStrafe = str;
+					inputHeartbeat = 0;
+				}
+			} else {
+				lastSentForward = 0.0f;
+				lastSentStrafe = 0.0f;
+				inputHeartbeat = 0;
 			}
 
 			// Handle Client-side Entity Audio

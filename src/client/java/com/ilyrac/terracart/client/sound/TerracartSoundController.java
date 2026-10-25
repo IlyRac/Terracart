@@ -8,6 +8,7 @@ import java.util.Map;
 public final class TerracartSoundController {
 
     private static final Map<TerracartEntity, TerracartSoundInstance> ACTIVE_SOUNDS = new IdentityHashMap<>();
+    private static final Map<TerracartEntity, TerracartBrakeSoundInstance> ACTIVE_BRAKE_SOUNDS = new IdentityHashMap<>();
 
     public static void tick(TerracartEntity cart) {
         Minecraft mc = Minecraft.getInstance();
@@ -19,20 +20,42 @@ public final class TerracartSoundController {
 
         TerracartSoundInstance sound = ACTIVE_SOUNDS.get(cart);
 
-        // Cart is removed or out of range, stop the sound
-        if (cart.isRemoved() || !inRange) {
+        // Cart is removed, out of range, or sound stopped (e.g. tier changed), clean up
+        if (cart.isRemoved() || !inRange || (sound != null && sound.isStopped())) {
             if (sound != null) {
                 mc.getSoundManager().stop(sound);
                 ACTIVE_SOUNDS.remove(cart);
+                sound = null;
             }
-            return;
+            if (cart.isRemoved() || !inRange) {
+                TerracartBrakeSoundInstance brakeSound = ACTIVE_BRAKE_SOUNDS.remove(cart);
+                if (brakeSound != null) {
+                    mc.getSoundManager().stop(brakeSound);
+                }
+                return;
+            }
         }
 
         // Only start the sound loop if active and fuel exists
-        if (sound == null && cart.getEntityData().get(TerracartEntity.SOUND_ACTIVE)) {
+        if (sound == null && cart.isSoundActive()) {
             sound = new TerracartSoundInstance(cart);
             ACTIVE_SOUNDS.put(cart, sound);
             mc.getSoundManager().play(sound);
+        }
+
+        // --- BRAKE SOUND CONTROLLER ---
+        TerracartBrakeSoundInstance brakeSound = ACTIVE_BRAKE_SOUNDS.get(cart);
+
+        if (brakeSound != null && brakeSound.isStopped()) {
+            mc.getSoundManager().stop(brakeSound);
+            ACTIVE_BRAKE_SOUNDS.remove(cart);
+            brakeSound = null;
+        }
+
+        if (brakeSound == null && cart.isBrakingActive()) {
+            brakeSound = new TerracartBrakeSoundInstance(cart);
+            ACTIVE_BRAKE_SOUNDS.put(cart, brakeSound);
+            mc.getSoundManager().play(brakeSound);
         }
     }
 }

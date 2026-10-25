@@ -1,28 +1,42 @@
 package com.ilyrac.terracart.item;
 
+import com.ilyrac.terracart.component.ModDataComponents;
+import com.ilyrac.terracart.component.TerracartCoreStats;
 import com.ilyrac.terracart.entity.ModEntities;
 import com.ilyrac.terracart.entity.TerracartEntity;
+import com.ilyrac.terracart.tier.TerracartTier;
+import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.Mth;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.TooltipFlag;
+import net.minecraft.world.item.component.TooltipDisplay;
 import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
 import org.jspecify.annotations.NonNull;
 
-public class TerracartItem extends Item {
-    private final int colorId;
+import java.util.Objects;
+import java.util.function.Consumer;
 
-    // Standard uncolored constructor
-    public TerracartItem(Properties properties) {
-        this(-1, properties);
+public class TerracartItem extends Item {
+    private final TerracartTier tier;
+
+    public TerracartItem(TerracartTier tier, Properties properties) {
+        super(properties);
+        this.tier = tier;
     }
 
-    // Colored constructor
-    public TerracartItem(int colorId, Properties properties) {
-        super(properties);
-        this.colorId = colorId;
+    public TerracartTier getTier() {
+        return this.tier;
+    }
+
+    @Override
+    public void appendHoverText(@NonNull ItemStack stack, @NonNull TooltipContext context, @NonNull TooltipDisplay display, @NonNull Consumer<Component> tooltipAdder, @NonNull TooltipFlag flag) {
+        TerracartCoreItem.appendStatsTooltip(this.tier, stack, tooltipAdder);
+        super.appendHoverText(stack, context, display, tooltipAdder, flag);
     }
 
     @Override
@@ -35,8 +49,9 @@ public class TerracartItem extends Item {
 
         ServerLevel serverLevel = (ServerLevel) level;
         Vec3 clickPos = context.getClickLocation();
+        ItemStack stack = context.getItemInHand();
 
-        TerracartEntity entity = new TerracartEntity(ModEntities.TERRACART, serverLevel);
+        TerracartEntity entity = new TerracartEntity(ModEntities.getEntityTypeFor(this.tier), serverLevel);
         entity.setPos(clickPos.x, clickPos.y, clickPos.z);
 
         float yaw = 0.0F;
@@ -49,11 +64,18 @@ public class TerracartItem extends Item {
         entity.yRotO = yaw;
         entity.xRotO = 0.0F;
 
-        // Apply the color ID (-1 defaults to default styling)
-        entity.setCartColor(this.colorId);
+        // Default neutral color (-1)
+        entity.setCartColor(-1);
+
+        // Core stats: inherit from calibrated item, or roll fresh random on first deployment
+        TerracartCoreStats stats = stack.get(ModDataComponents.CORE_STATS);
+        entity.setCoreStats(Objects.requireNonNullElseGet(stats, () -> TerracartCoreStats.forRandomTier(this.tier, serverLevel.getRandom())));
+        entity.setHealth(entity.getMaxHealth());
+        int startFuel = 5 + serverLevel.getRandom().nextInt(11); // 5 to 15 FU
+        entity.setFuel(startFuel * TerracartEntity.TICKS_PER_FUEL_UNIT);
 
         serverLevel.addFreshEntity(entity);
-        context.getItemInHand().shrink(1);
+        stack.shrink(1);
 
         return InteractionResult.SUCCESS;
     }

@@ -2,15 +2,16 @@
 	"schemaVersion": 1,
 	"id": "terracart",
 	"version": "${version}",
-	"name": "Terracart",
-	"description": "Vanilla-friendly drivable cart, smooth movement, colors, fuel & repairs, HUD, sounds & particles.",
+	"name": "Terracarts",
+	"description": "Vanilla-friendly vehicles with smooth movement and physics, colors and model variants, loot tables and randomized stats, refuel and repair systems, collision and damage mechanics, custom HUD, sounds, and particle effects.",
 	"authors": [
 		"IlyRac"
 	],
 	"custom": {
 		"modmenu": {
 			"links": {
-				"Enjoying the mod? Support me!": "https://ko-fi.com/ilyrac",
+				"Every coffee fuels more features — thank you!": "https://ko-fi.com/ilyrac",
+				"Source Code": "https://github.com/IlyRac/Terracart",
 				"License": "https://github.com/IlyRac/Terracart/blob/main/LICENSE.md"
 			},
 			"update_checker": true
@@ -20,6 +21,9 @@
 	"icon": "assets/terracart/icon.png",
 	"environment": "*",
 	"entrypoints": {
+		"fabric-datagen": [
+			"com.ilyrac.terracart.client.TerracartDataGenerator"
+		],
 		"main": [
 			"com.ilyrac.terracart.Terracart"
 		],

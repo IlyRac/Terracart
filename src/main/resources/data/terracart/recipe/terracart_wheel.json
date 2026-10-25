@@ -1,16 +1,16 @@
 {
-    "type": "minecraft:crafting_shaped",
-    "pattern": [
-        " B ",
-        "BIB",
-        " B "
-    ],
-    "key": {
-        "B": "minecraft:black_wool",
-        "I": "minecraft:iron_ingot"
-    },
-    "result": {
-        "id": "terracart:terracart_wheel",
-        "count": 2
-    }
+  "type": "minecraft:crafting_shaped",
+  "key": {
+    "B": "minecraft:black_wool",
+    "I": "minecraft:iron_ingot"
+  },
+  "pattern": [
+    " B ",
+    "BIB",
+    " B "
+  ],
+  "result": {
+    "count": 2,
+    "id": "terracart:terracart_wheel"
+  }
 }

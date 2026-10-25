@@ -2,7 +2,10 @@
 	"required": true,
 	"package": "com.ilyrac.terracart.mixin",
 	"compatibilityLevel": "JAVA_25",
-	"mixins": [],
+	"mixins": [
+		"BlockStateBaseMixin",
+		"ShapedRecipeMixin"
+	],
 	"injectors": {
 		"defaultRequire": 1
 	},

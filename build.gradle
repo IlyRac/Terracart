@@ -22,6 +22,12 @@ loom {
 	}
 }
 
+fabricApi {
+	configureDataGeneration {
+		client = true
+	}
+}
+
 dependencies {
 	// To change the versions see the gradle.properties file
 	minecraft "com.mojang:minecraft:${project.minecraft_version}"
@@ -31,7 +37,12 @@ dependencies {
 	implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
 }
 
+tasks.withType(AbstractCopyTask).configureEach {
+	duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+}
+
 processResources {
+	duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 	def version = project.version
 	inputs.property "version", version
 
@@ -39,6 +50,8 @@ processResources {
 		expand "version": version
 	}
 }
+
+
 
 tasks.withType(JavaCompile).configureEach {
 	it.options.release = 25
