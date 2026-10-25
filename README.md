@@ -42,14 +42,14 @@ Screenshots taken on the **Umihara City** map by **Shiomate** — huge thanks!
 
 ![Terracarts](https://github.com/user-attachments/assets/8f8a9c1f-5f62-48b8-b885-58c73b9946e7)
 
-![Cores and Wheels](https://github.com/user-attachments/assets/3a424c68-242a-4274-b674-491d6f648e73)
+![Cores and Wheels](https://github.com/user-attachments/assets/a466be59-32af-410d-abca-bc8d8059c85b)
 
 ---
 
 ## ✨ Features
 
 - 🚙 **Four Vehicle Tiers:** Standard, Swift, Sturdy, and Prime, each with randomized stats.
-- 🗺️ **Exploration & Loot:** Find vehicle cores in structure chests throughout the world.
+- 🗺️ **Exploration & Loot:** Find vehicle cores in structure chests. Each core determines your Terracart's tier and randomized stats.
 - ⚙️ **Driving Physics:** Responsive steering, downhill acceleration, uphill resistance, and terrain-dependent handling across different environments.
 - 💥 **Collisions & Crashes:** Collide with mobs, walls, other vehicles, and the environment. Crashes can damage your vehicle, cause fuel loss, injure the driver, and temporarily stall the engine.
 - ⛽ **Fuel & Repairs:** Refuel with coal and repair your vehicle with iron ingots.
