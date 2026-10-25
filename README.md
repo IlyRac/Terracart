@@ -1,12 +1,14 @@
-<img width="1440" height="300" alt="Title" src="https://github.com/user-attachments/assets/c5df70b5-276d-45b2-8628-afafe3003fc6" />
+![Terracarts Title](https://github.com/user-attachments/assets/c5df70b5-276d-45b2-8628-afafe3003fc6)
 
 ---
 
 # Terracarts brings coal-powered vehicles to Minecraft, designed to feel like a natural extension of vanilla survival. Explore the world to discover rare cores, build your own vehicle, customize its appearance, and hit the road.
 
-<img width="1440" height="100" alt="CurseForge" src="https://github.com/user-attachments/assets/57783362-2cc0-4231-9101-afc05cbd3b8e" />
-<img width="1440" height="100" alt="Modrinth" src="https://github.com/user-attachments/assets/6111b2b0-743e-4394-9c35-09a106cf79f0" />
-<img width="1440" height="100" alt="Ko-fi" src="https://github.com/user-attachments/assets/2e739f5d-9693-4f48-a7ad-c97afde8c5f2" />
+---
+
+[![CurseForge](https://github.com/user-attachments/assets/57783362-2cc0-4231-9101-afc05cbd3b8e)](https://www.curseforge.com/members/ilyrac/projects)
+[![Modrinth](https://github.com/user-attachments/assets/6111b2b0-743e-4394-9c35-09a106cf79f0)](https://modrinth.com/user/ilyrac)
+[![Ko-fi](https://github.com/user-attachments/assets/2e739f5d-9693-4f48-a7ad-c97afde8c5f2)](https://ko-fi.com/ilyrac)
 
 ---
 
@@ -14,20 +16,33 @@ Screenshots taken on the **Umihara City** map by **Shiomate** — huge thanks!
 
 **Map:** [Umihara City 海原](https://www.planetminecraft.com/project/umiharacity/) · **Creator:** [Shiomate](https://www.planetminecraft.com/member/shiomate/)
 
-<img width="1440" height="900" alt="MidnightDrag" src="https://github.com/user-attachments/assets/580dd3a2-e606-43bd-bd12-2fa1ac79bb0b" />
-<img width="1440" height="900" alt="Home" src="https://github.com/user-attachments/assets/83ba7f45-c38a-4e2e-83c7-5bbb2e863af6" />
-<img width="1440" height="900" alt="Tunnel" src="https://github.com/user-attachments/assets/5e40bb62-1260-4d69-b85d-32a996a1b733" />
-<img width="1440" height="900" alt="Sunrise" src="https://github.com/user-attachments/assets/37db6184-d640-48e5-ba14-7c639466e3f1" />
-<img width="1400" height="900" alt="Explosion" src="https://github.com/user-attachments/assets/0b8628a8-91ba-444f-a68e-4cbfe5fc4436" />
-<img width="1440" height="900" alt="Race" src="https://github.com/user-attachments/assets/bd91f145-4b89-4e13-8c3c-3f94cb300e7f" />
-<img width="1440" height="900" alt="Sturdy" src="https://github.com/user-attachments/assets/5b632582-88d4-405a-8a98-dceb5e533731" />
-<img width="1440" height="900" alt="Parking" src="https://github.com/user-attachments/assets/cca79b1f-3273-4c64-9701-bb32f82f61ae" />
-<img width="1440" height="900" alt="Lava" src="https://github.com/user-attachments/assets/c504d907-1ef1-4b20-a1fd-6b4b6fa1b8d0" />
-<img width="1440" height="900" alt="Nametag" src="https://github.com/user-attachments/assets/dd053ad5-96b7-4106-8387-7eb591fe5d86" />
-<img width="1440" height="900" alt="Dye" src="https://github.com/user-attachments/assets/623a2d2d-f35e-4bfb-bbff-8ada97dcc8fd" />
-<img width="1440" height="200" alt="Recipes" src="https://github.com/user-attachments/assets/eae0ab84-6ff9-40fe-85a9-f1402e89bb29" />
-<img width="1440" height="225" alt="Terracarts" src="https://github.com/user-attachments/assets/8f8a9c1f-5f62-48b8-b885-58c73b9946e7" />
-<img width="1440" height="275" alt="Cores   Wheel" src="https://github.com/user-attachments/assets/3a424c68-242a-4274-b674-491d6f648e73" />
+![Midnight Drag](https://github.com/user-attachments/assets/580dd3a2-e606-43bd-bd12-2fa1ac79bb0b)
+
+![Home](https://github.com/user-attachments/assets/83ba7f45-c38a-4e2e-83c7-5bbb2e863af6)
+
+![Tunnel](https://github.com/user-attachments/assets/5e40bb62-1260-4d69-b85d-32a996a1b733)
+
+![Sunrise](https://github.com/user-attachments/assets/37db6184-d640-48e5-ba14-7c639466e3f1)
+
+![Explosion](https://github.com/user-attachments/assets/0b8628a8-91ba-444f-a68e-4cbfe5fc4436)
+
+![Race](https://github.com/user-attachments/assets/bd91f145-4b89-4e13-8c3c-3f94cb300e7f)
+
+![Sturdy](https://github.com/user-attachments/assets/5b632582-88d4-405a-8a98-dceb5e533731)
+
+![Parking](https://github.com/user-attachments/assets/cca79b1f-3273-4c64-9701-bb32f82f61ae)
+
+![Lava](https://github.com/user-attachments/assets/c504d907-1ef1-4b20-a1fd-6b4b6fa1b8d0)
+
+![Name Tag](https://github.com/user-attachments/assets/dd053ad5-96b7-4106-8387-7eb591fe5d86)
+
+![Dye Customization](https://github.com/user-attachments/assets/623a2d2d-f35e-4bfb-bbff-8ada97dcc8fd)
+
+![Crafting Recipes](https://github.com/user-attachments/assets/eae0ab84-6ff9-40fe-85a9-f1402e89bb29)
+
+![Terracarts](https://github.com/user-attachments/assets/8f8a9c1f-5f62-48b8-b885-58c73b9946e7)
+
+![Cores and Wheels](https://github.com/user-attachments/assets/3a424c68-242a-4274-b674-491d6f648e73)
 
 ---
 
