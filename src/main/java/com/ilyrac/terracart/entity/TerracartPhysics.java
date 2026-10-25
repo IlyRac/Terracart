@@ -114,6 +114,13 @@ public class TerracartPhysics {
                             effectiveAccel *= 0.25;
                         }
 
+                        // Soft throttle launch ramp from standstill
+                        if (currentSpeed < 0.05) {
+                            effectiveAccel *= 0.35;
+                        } else if (currentSpeed < 0.15) {
+                            effectiveAccel *= 0.70;
+                        }
+
                         currentSpeed += effectiveAccel;
 
                         // Drain excess speed down when entering foliage or shallow water, then sustain at effectiveMaxForwardSpeed
@@ -129,14 +136,16 @@ public class TerracartPhysics {
                         if (currentSpeed <= 0.001) {
                             currentSpeed = 0.0;
                             isBraking = false;
-                            // Enter shift delay into reverse
+                            // Lock physical motion dead so the cart does not glide/slide forward
+                            cart.setDeltaMovement(0.0, cart.getDeltaMovement().y, 0.0);
+                            // Shift into reverse gear with shift audio, and begin the 6-tick stop pause
+                            cart.setCurrentGear(-1);
+                            playShiftSound(cart);
                             cart.setShiftDelayTimer(SHIFT_DELAY);
-                            cart.setShiftTargetDirection(-1);
                         }
                     } else {
                         // Coasting forward (forward == 0)
                         cart.setShiftDelayTimer(0);
-                        cart.setShiftTargetDirection(0);
 
                         if (cart.getDescentTimer() > 0) {
                             // Downhill: no friction / resistance, auto-accelerates forward!
@@ -159,10 +168,17 @@ public class TerracartPhysics {
                     if (forward < 0) {
                         // Accelerating in reverse
                         cart.setShiftDelayTimer(0);
-                        cart.setShiftTargetDirection(0);
                         double effectiveAccel = ACCEL;
                         if (inLeaves) effectiveAccel *= 0.55;
                         if (inShallowWater) effectiveAccel *= 0.25;
+
+                        // Soft throttle launch ramp from standstill
+                        if (Math.abs(currentSpeed) < 0.05) {
+                            effectiveAccel *= 0.35;
+                        } else if (Math.abs(currentSpeed) < 0.15) {
+                            effectiveAccel *= 0.70;
+                        }
+
                         currentSpeed -= effectiveAccel;
                         currentSpeed = Math.max(currentSpeed, -effectiveMaxReverseSpeed);
                     } else if (forward > 0) {
@@ -172,14 +188,16 @@ public class TerracartPhysics {
                         if (currentSpeed >= -0.001) {
                             currentSpeed = 0.0;
                             isBraking = false;
-                            // Enter shift delay into forward
+                            // Lock physical motion dead so the cart does not glide/slide backward
+                            cart.setDeltaMovement(0.0, cart.getDeltaMovement().y, 0.0);
+                            // Shift into drive gear with shift audio, and begin the 6-tick stop pause
+                            cart.setCurrentGear(1);
+                            playShiftSound(cart);
                             cart.setShiftDelayTimer(SHIFT_DELAY);
-                            cart.setShiftTargetDirection(1);
                         }
                     } else {
                         // Coasting in reverse
                         cart.setShiftDelayTimer(0);
-                        cart.setShiftTargetDirection(0);
                         currentSpeed *= FRICTION;
                         if ((inLeaves || inShallowWater) && currentSpeed < -effectiveMaxReverseSpeed) {
                             currentSpeed = Math.min(-effectiveMaxReverseSpeed, currentSpeed * 0.94);
@@ -190,45 +208,35 @@ public class TerracartPhysics {
                     // --- AT COMPLETE STOP (currentSpeed == 0.0) ---
                     currentSpeed = 0.0;
                     int timer = cart.getShiftDelayTimer();
-                    int targetDir = cart.getShiftTargetDirection();
                     int gear = cart.getCurrentGear();
 
                     if (timer > 0) {
-                        // Currently in the 6-tick directional pause
-                        boolean holdingTarget = (targetDir == -1 && forward < 0) || (targetDir == 1 && forward > 0);
-                        if (!holdingTarget) {
-                            // Player released input during pause (panic-stop or cancelled maneuver)
+                        // Currently in the post-shift engagement pause (gear already shifted and clicked)
+                        boolean holdingThrottle = (gear == -1 && forward < 0) || (gear == 1 && forward > 0);
+                        if (!holdingThrottle) {
+                            // Player released input during pause (cancelled maneuver / staying parked)
                             cart.setShiftDelayTimer(0);
-                            cart.setShiftTargetDirection(0);
                         } else {
                             timer--;
                             cart.setShiftDelayTimer(timer);
-                            if (timer == 0) {
-                                // Transition complete! Trigger shift audio on server
-                                if (!cart.level().isClientSide() && cart.level() instanceof ServerLevel sl) {
-                                    sl.playSound(null, cart.getX(), cart.getY(), cart.getZ(),
-                                            ModSounds.TERRACART_SHIFT, SoundSource.NEUTRAL, 0.75F, 1.0F);
-                                }
-                                cart.setCurrentGear(targetDir);
-                                cart.setShiftTargetDirection(0);
-                                // Engage initial momentum in target direction
-                                currentSpeed = targetDir * ACCEL;
-                            }
+                            // Hold stationary at 0.0 while timer is running!
                         }
                     } else {
-                        // Stationary at stop (timer == 0) - respect transmission gear!
+                        // Stationary at stop with transmission engaged (timer == 0)
                         if (gear == 1) {
                             // Currently in Drive (Forward)
                             if (forward > 0) {
                                 double effectiveAccel = (cart.getInclineTimer() > 0) ? ACCEL * 0.45 : (cart.getDescentTimer() > 0 ? ACCEL * 1.15 : ACCEL);
                                 if (inLeaves) effectiveAccel *= 0.55;
                                 if (inShallowWater) effectiveAccel *= 0.25;
+                                effectiveAccel *= 0.35; // Soft launch ramp from standstill
                                 currentSpeed += effectiveAccel;
                                 currentSpeed = Math.min(currentSpeed, effectiveMaxForwardSpeed);
                             } else if (forward < 0) {
-                                // Must shift into Reverse!
+                                // Shifting from stopped Drive into Reverse
+                                cart.setCurrentGear(-1);
+                                playShiftSound(cart);
                                 cart.setShiftDelayTimer(SHIFT_DELAY);
-                                cart.setShiftTargetDirection(-1);
                             } else if (cart.getDescentTimer() > 0) {
                                 // Downhill slope without player forward button: auto-roll begins!
                                 currentSpeed = ACCEL * 0.25;
@@ -239,12 +247,14 @@ public class TerracartPhysics {
                                 double effectiveAccel = ACCEL;
                                 if (inLeaves) effectiveAccel *= 0.55;
                                 if (inShallowWater) effectiveAccel *= 0.25;
+                                effectiveAccel *= 0.35; // Soft launch ramp from standstill
                                 currentSpeed -= effectiveAccel;
                                 currentSpeed = Math.max(currentSpeed, -effectiveMaxReverseSpeed);
                             } else if (forward > 0) {
-                                // Must shift into Drive!
+                                // Shifting from stopped Reverse into Drive
+                                cart.setCurrentGear(1);
+                                playShiftSound(cart);
                                 cart.setShiftDelayTimer(SHIFT_DELAY);
-                                cart.setShiftTargetDirection(1);
                             }
                         }
                     }
@@ -295,6 +305,10 @@ public class TerracartPhysics {
             // 4. Continue applying directional momentum using currentSpeed while coasting
             float rad = (float) Math.toRadians(cart.getYRot());
             if (Math.abs(currentSpeed) < 0.001) {
+                // If actively braking or holding stationary during the 6-tick shift pause, hold zero horizontal motion!
+                if (isBraking || cart.getShiftDelayTimer() > 0) {
+                    return new Vec3(0.0, motion.y, 0.0);
+                }
                 // Throttle is at zero (coasting from external impulse, bumper bounce, or idling):
                 // Preserve physical momentum with standard rolling friction exactly like an empty cart!
                 return new Vec3(motion.x * 0.95, motion.y, motion.z * 0.95);
@@ -473,6 +487,13 @@ public class TerracartPhysics {
 
                 TerracartCollisionHandler.applyImpactConsequences(cart, cartDamage, playerDamage, fuelLossUnits, isSevere, false, 0.0, 0.0);
             }
+        }
+    }
+
+    public static void playShiftSound(TerracartEntity cart) {
+        if (!cart.level().isClientSide() && cart.level() instanceof ServerLevel sl) {
+            sl.playSound(null, cart.getX(), cart.getY(), cart.getZ(),
+                    ModSounds.TERRACART_SHIFT, SoundSource.NEUTRAL, 0.85F, 1.0F);
         }
     }
 }

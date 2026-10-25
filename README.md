@@ -1,3 +1,16 @@
+
+---
+
+# Terracarts brings coal-powered vehicles to Minecraft, designed to feel like a natural extension of vanilla survival. Explore the world to discover rare cores, build your own vehicle, customize its appearance, and hit the road.
+
+---
+
+Screenshots taken on the **Umihara City** map by **Shiomate** — huge thanks!
+
+**Map:** [Umihara City 海原](https://www.planetminecraft.com/project/umiharacity/) · **Creator:** [Shiomate](https://www.planetminecraft.com/member/shiomate/)
+
+---
+
 ## ✨ Features
 
 - 🚙 **Four Vehicle Tiers:** Standard, Swift, Sturdy, and Prime, each with randomized stats.
