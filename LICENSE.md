@@ -2,18 +2,24 @@
 
 **Copyright (c) 2026 IlyRac. All rights reserved.**
 
-### 1. General Rule
-You are **not** allowed to:
-* Reuse any Assets in other projects.
-* Re-upload this mod or publicly distribute modified versions.
+## 1. Restrictions
 
-### 2. What You Can Do
-* Include this mod in any modpack and host it on multiplayer servers.
-* Record videos and stream gameplay.
-* Download, play, and modify the mod for your own private fun.
+Without prior written permission, you may not:
 
-### 3. Disclaimer
-This software is provided "as-is" without any warranty. The author is not responsible for any issues or world loss caused by using it.
+- **Redistribute the mod:** Re-upload or publicly distribute the mod, including modified versions.
+- **Reuse assets:** Use or redistribute assets from this mod in other projects.
 
-### 4. Legal
+## 2. Permitted Use
+
+- Include the mod in modpacks.
+- Use the mod on multiplayer servers.
+- Modify the mod for personal use only.
+- Record videos, stream gameplay, and share screenshots.
+
+## 3. Disclaimer
+
+This software is provided "as is," without any warranty. The author is not responsible for any issues or world loss caused by using it.
+
+## 4. Legal
+
 This mod is not affiliated with or endorsed by Mojang or Microsoft. Minecraft is a trademark of Mojang Studios.
